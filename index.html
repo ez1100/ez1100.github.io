@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - 간편하게 즐기는 web Yotch</title>
-    
+    <title>Yacht Dice - 진짜 최종</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
     <style>
         * { box-sizing: border-box; }
         
@@ -31,7 +29,6 @@
         .dice { width: 55px; height: 55px; background-color: #ecf0f1; color: #2c3e50; font-size: 30px; font-weight: bold; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; }
         .dice.held { background-color: #f1c40f; color: #000; transform: translateY(5px); box-shadow: none; }
         
-        /* 💡 게임 종료 시 주사위 대신 뜨는 승패 텍스트 연출 */
         .result-dice-text { font-size: 36px; font-weight: 900; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); animation: popHighlight 0.5s ease-out; }
 
         @keyframes tumble {
@@ -80,13 +77,11 @@
         
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
 
-        /* 💡 오버레이 수정: 블러 제거, 위치를 하단으로 내려서 점수판이 보이게 함 */
         .overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: rgba(26, 37, 47, 0.4); /* 블러 삭제, 배경 투명도 낮춤 */
-            z-index: 1000; 
-            justify-content: center; align-items: center; 
-            flex-direction: column; justify-content: flex-end; padding-bottom: 30px; /* 창을 맨 아래로 배치 */
+            background-color: rgba(26, 37, 47, 0.4); 
+            z-index: 1000; justify-content: center; align-items: center; 
+            flex-direction: column; justify-content: flex-end; padding-bottom: 30px;
         }
         .overlay.show { display: flex; }
         
@@ -128,7 +123,6 @@
             <div id="copyHint" class="copy-hint"><i class="fa-regular fa-copy"></i> 터치해서 복사하기</div>
         </div>
         <br>
-        
         <input type="text" id="oppCodeInput" placeholder="상대방 코드 입력 (빈칸 시 봇전)"><br><br>
         <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled>게임 시작</button>
     </div>
@@ -245,23 +239,19 @@
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
 
-        // 💡 캡쳐 기능 로직
         function captureScoreboard() {
             const board = document.getElementById('scoreBoard');
             const btn = document.getElementById('captureBtn');
             btn.innerText = "📸 캡쳐 중...";
             
-            // html2canvas로 테이블 요소를 캔버스로 변환
             html2canvas(board, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
                 let link = document.createElement('a');
                 link.download = `Yacht_Score_${myNickname}.png`;
                 link.href = canvas.toDataURL('image/png');
-                link.click(); // 자동 다운로드 실행
+                link.click();
                 
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
-                setTimeout(() => { 
-                    btn.innerHTML = '<i class="fa-solid fa-camera"></i> 점수판 캡쳐'; 
-                }, 2000);
+                setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-camera"></i> 점수판 캡쳐'; }, 2000);
             }).catch(err => {
                 btn.innerHTML = '<i class="fa-solid fa-camera"></i> 캡쳐 실패';
                 alert("캡쳐에 실패했습니다.");
@@ -398,7 +388,7 @@
         function startGame() {
             switchView('game-view');
             document.getElementById('gameover-overlay').classList.remove('show');
-            document.getElementById('actionButtons').style.display = 'block'; // 버튼 부활
+            document.getElementById('actionButtons').style.display = 'block'; 
             document.getElementById('p1Name').innerText = myNickname; document.getElementById('p2Name').innerText = oppNickname;
             myScores = {}; oppScores = {}; 
             lastScoredId = null; 
@@ -470,7 +460,10 @@
             showVictoryScreen(oppNickname); 
         }
 
-        function handleOpponentSurrender() { alert("상대방이 기권했습니다!"); showVictoryScreen(myNickname); }
+        function handleOpponentSurrender() { 
+            alert("상대방이 기권했습니다!"); 
+            showVictoryScreen(myNickname); 
+        }
 
         function selectScore(catId) {
             if(!isMyTurn || rollsLeft === 3 || myScores[catId] !== undefined || isRolling) return;
@@ -481,20 +474,60 @@
             if(conn && !isBotMode) conn.send({ type: 'SYNC_SCORE', category: catId, score: myScores[catId] });
             
             isMyTurn = false; resetTurnData(); updateUI();
-            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1500); } 
+            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1000); } 
             else { checkGameEnd(); }
+        }
+
+        // 💡 봇 조기 항복 로직
+        function checkBotSurrenderCondition() {
+            if (!isBotMode) return false;
+
+            let playerTotal = calculateScores(myScores).total;
+            let botCurrentUpper = 0;
+            let botEmptyUpperMax = 0;
+            let botEmptyLowerMax = 0;
+
+            const maxValues = {
+                'aces': 5, 'twos': 10, 'threes': 15, 'fours': 20, 'fives': 25, 'sixes': 30,
+                'choice': 30, '4ofakind': 30, 'fullhouse': 30, 'sstraight': 15, 'lstraight': 30, 'yacht': 50
+            };
+            const upperKeys = ['aces', 'twos', 'threes', 'fours', 'fives', 'sixes'];
+
+            for (let cat of categories) {
+                let key = cat.id;
+                if (oppScores[key] !== undefined) {
+                    if (upperKeys.includes(key)) botCurrentUpper += oppScores[key];
+                } else {
+                    if (upperKeys.includes(key)) botEmptyUpperMax += maxValues[key];
+                    else botEmptyLowerMax += maxValues[key];
+                }
+            }
+
+            let botBonus = (botCurrentUpper + botEmptyUpperMax >= 63) ? 35 : 0;
+            let botCurrentTotalNoBonus = Object.values(oppScores).reduce((a, b) => a + b, 0);
+            let botMaxPossibleTotal = botCurrentTotalNoBonus + botEmptyUpperMax + botEmptyLowerMax + botBonus;
+
+            // 남은 칸을 최대 점수로 다 채워도 플레이어의 현재 점수를 이길 수 없다면 기권
+            return (botMaxPossibleTotal < playerTotal);
         }
 
         function runBotLogic() {
             if (isMyTurn || checkGameEnd() || isRolling) return;
             
+            // 💡 턴 시작 시 패배 확정이면 조기 항복
+            if (checkBotSurrenderCondition()) {
+                setTimeout(() => {
+                    alert("🤖 알파다이스: 계산 결과 승률 0%... 기권하겠습니다.");
+                    showVictoryScreen(myNickname);
+                }, 1000);
+                return;
+            }
+            
             if (rollsLeft === 3) { 
                 botRollDice(() => { setTimeout(runBotLogic, 1500); }); 
             } else if (rollsLeft > 0) { 
                 botDecideHolds(); 
-                setTimeout(() => {
-                    botRollDice(() => { setTimeout(runBotLogic, 1500); }); 
-                }, 1000);
+                setTimeout(() => { botRollDice(() => { setTimeout(runBotLogic, 1500); }); }, 1000);
             } else { 
                 setTimeout(botSelectScore, 800);
             }
@@ -629,15 +662,14 @@
 
         function showVictoryScreen(winner) {
             document.getElementById('gameover-overlay').classList.add('show');
-            document.getElementById('actionButtons').style.display = 'none'; // 버튼 숨김
+            document.getElementById('actionButtons').style.display = 'none'; 
 
             lastWinner = winner; 
-            
             let isWin = winner === myNickname;
             let isDraw = winner === "무승부";
             let isBotWin = winner === oppNickname && isBotMode;
 
-            // 💡 주사위 위치에 승패 연출 텍스트 띄우기
+            // 💡 승패 텍스트 연출 (주사위 영역 교체)
             const diceCont = document.getElementById('diceContainer');
             if(isDraw) {
                 diceCont.innerHTML = '<div class="result-dice-text" style="color:#bdc3c7;">🤝 무승부 🤝</div>';
