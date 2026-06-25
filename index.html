@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - 반응형 모바일 최적화 (랜덤 닉네임 지원)</title>
+    <title>Yacht Dice - 캡쳐 & 연출 최적화</title>
+    
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <style>
         * { box-sizing: border-box; }
         
@@ -20,12 +23,26 @@
         .btn-red:hover { background-color: #c0392b; }
         .btn-green { background-color: #2ecc71; color: white; }
         .btn-blue { background-color: #3498db; color: white; }
+        .btn-purple { background-color: #9b59b6; color: white; }
+        .btn-purple:hover { background-color: #8e44ad; }
         button:disabled { background-color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
 
-        .dice-container { display: flex; justify-content: center; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+        .dice-container { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 20px 0; min-height: 55px; flex-wrap: wrap; }
         .dice { width: 55px; height: 55px; background-color: #ecf0f1; color: #2c3e50; font-size: 30px; font-weight: bold; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; }
         .dice.held { background-color: #f1c40f; color: #000; transform: translateY(5px); box-shadow: none; }
         
+        /* 💡 게임 종료 시 주사위 대신 뜨는 승패 텍스트 연출 */
+        .result-dice-text { font-size: 36px; font-weight: 900; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); animation: popHighlight 0.5s ease-out; }
+
+        @keyframes tumble {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(1); }
+            75% { transform: rotate(270deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .rolling { animation: tumble 0.2s linear infinite; box-shadow: 0 8px 15px rgba(0,0,0,0.3) !important; background-color: #bdc3c7 !important; }
+
         table { margin: 15px auto; border-collapse: collapse; width: 100%; max-width: 450px; background-color: #fff; color: #333; border-radius: 10px; overflow: hidden; }
         th, td { border: 1px solid #ddd; padding: 8px 5px; text-align: center; }
         th { background-color: #2c3e50; color: white; font-size: 14px; }
@@ -34,9 +51,19 @@
         .cat-name i { margin-right: 6px; color: #555; }
         .max-score { color: #95a5a6; font-size: 11px; float: right; font-weight: normal; line-height: 1.5; }
         
-        .score-cell { font-weight: bold; width: 27%; font-size: 16px; }
+        .score-cell { font-weight: bold; width: 27%; font-size: 16px; transition: 0.2s; }
         .score-cell.potential { color: #2ecc71; background-color: #f0fff0; cursor: pointer; }
         .score-cell.filled { color: #2c3e50; background-color: #f8f9fa; }
+
+        @keyframes popHighlight {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        .score-cell.last-scored {
+            background-color: #fff3cd !important; color: #d35400 !important; 
+            border: 2px solid #f1c40f; animation: popHighlight 0.4s ease-out; box-shadow: inset 0 0 10px rgba(241, 196, 15, 0.3);
+        }
 
         .bonus-row { background-color: #ebf5fb; font-size: 13px; font-weight: bold; }
         .bonus-achieved { background-color: #f1c40f !important; color: #000 !important; font-weight: bold; }
@@ -49,9 +76,24 @@
         .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0; font-family: monospace; word-break: break-all; max-width: 100%; cursor: pointer; transition: 0.2s; border: 2px dashed transparent; }
         .code-box:hover { background-color: #3b536b; border-color: #bdc3c7; }
         .code-box:active { background-color: #2c3e50; transform: scale(0.98); }
-        .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-family: 'Pretendard', sans-serif; font-weight: bold; }
+        .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-weight: bold; }
         
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
+
+        /* 💡 오버레이 수정: 블러 제거, 위치를 하단으로 내려서 점수판이 보이게 함 */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(26, 37, 47, 0.4); /* 블러 삭제, 배경 투명도 낮춤 */
+            z-index: 1000; 
+            justify-content: center; align-items: center; 
+            flex-direction: column; justify-content: flex-end; padding-bottom: 30px; /* 창을 맨 아래로 배치 */
+        }
+        .overlay.show { display: flex; }
+        
+        .result-box {
+            background-color: #2c3e50; padding: 20px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 2px solid #f1c40f; width: 90%; max-width: 400px;
+        }
 
         @media (max-width: 400px) {
             h2 { font-size: 22px; }
@@ -87,7 +129,7 @@
         </div>
         <br>
         
-        <input type="text" id="oppCodeInput" placeholder="상대방 코드 입력 (봇전은 BOT)"><br><br>
+        <input type="text" id="oppCodeInput" placeholder="상대방 코드 입력 (빈칸 시 봇전)"><br><br>
         <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled>게임 시작</button>
     </div>
 
@@ -96,7 +138,7 @@
         
         <div class="dice-container" id="diceContainer"></div>
         
-        <div style="margin-bottom: 15px;">
+        <div style="margin-bottom: 15px;" id="actionButtons">
             <button id="rollBtn" class="btn-red" onclick="rollDice()">주사위 굴리기 (<span id="rollsLeftText">3</span>/3)</button>
             <button id="surrenderBtn" class="btn-blue" style="background-color: #7f8c8d;" onclick="surrender()">기권</button>
         </div>
@@ -132,7 +174,7 @@
             </tfoot>
         </table>
         
-        <div class="guide-section">
+        <div class="guide-section" id="guideSection">
             <h4><i class="fa-solid fa-book"></i> 점수 계산 방법</h4>
             <div id="guide-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
@@ -151,12 +193,20 @@
         </div>
     </div>
 
-    <div id="gameover-view" class="view">
-        <h1 id="winnerText" style="font-size: 40px; color: #f1c40f;"></h1>
-        <p id="finalScoreMsg" style="font-size: 18px;"></p>
-        <button class="btn-green" id="rematchBtn" onclick="requestRematch()">다시하기 (진 사람 선공)</button><br>
-        <button class="btn-red" onclick="location.reload()">종료하기</button>
-        <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7; font-size: 14px;"></div>
+    <div id="gameover-overlay" class="overlay">
+        <div class="result-box">
+            <h1 id="winnerText" style="font-size: 28px; color: #f1c40f; margin-top: 0; margin-bottom: 10px; word-break: keep-all;"></h1>
+            <p id="finalScoreMsg" style="font-size: 16px; margin-bottom: 20px;"></p>
+            
+            <button class="btn-purple" id="captureBtn" onclick="captureScoreboard()" style="width: 100%; margin-bottom: 10px;">
+                <i class="fa-solid fa-camera"></i> 점수판 캡쳐
+            </button>
+            <div style="display: flex; justify-content: space-between;">
+                <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px;">다시하기</button>
+                <button class="btn-red" onclick="location.reload()" style="flex: 1; font-size: 14px;">종료</button>
+            </div>
+            <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7; font-size: 12px;"></div>
+        </div>
     </div>
 
     <script>
@@ -169,7 +219,9 @@
         let rollsLeft = 3;
         let isMyTurn = false;
         let lastWinner = null; 
+        let isRolling = false; 
 
+        let lastScoredId = null; 
         let amIWantRematch = false, isOppWantRematch = false;
 
         const upperCategories = [
@@ -193,6 +245,29 @@
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
 
+        // 💡 캡쳐 기능 로직
+        function captureScoreboard() {
+            const board = document.getElementById('scoreBoard');
+            const btn = document.getElementById('captureBtn');
+            btn.innerText = "📸 캡쳐 중...";
+            
+            // html2canvas로 테이블 요소를 캔버스로 변환
+            html2canvas(board, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = `Yacht_Score_${myNickname}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click(); // 자동 다운로드 실행
+                
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
+                setTimeout(() => { 
+                    btn.innerHTML = '<i class="fa-solid fa-camera"></i> 점수판 캡쳐'; 
+                }, 2000);
+            }).catch(err => {
+                btn.innerHTML = '<i class="fa-solid fa-camera"></i> 캡쳐 실패';
+                alert("캡쳐에 실패했습니다.");
+            });
+        }
+
         function copyMyCode() {
             const codeText = document.getElementById('myCodeDisplay').innerText;
             if (codeText === '생성 중...' || codeText === '-') return;
@@ -205,8 +280,6 @@
                     hintEl.innerHTML = '<i class="fa-regular fa-copy"></i> 터치해서 복사하기';
                     hintEl.style.color = '#bdc3c7';
                 }, 2000);
-            }).catch(err => {
-                alert("복사에 실패했습니다. 직접 코드를 꾹 눌러 복사해주세요.");
             });
         }
 
@@ -267,11 +340,9 @@
             if (counts.some(c => c === 5)) triggerYachtFireworks();
         }
 
-        // 💡 랜덤 아이디 자동 부여 로직
         function enterLobby() {
             let inputName = document.getElementById('nicknameInput').value.trim();
             if (!inputName) {
-                // 입력값이 없으면 0000~9999 사이의 4자리 랜덤 숫자 생성
                 let randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
                 myNickname = "유저_" + randomNum;
             } else {
@@ -286,9 +357,8 @@
 
         function connectToOpponent() {
             const tid = document.getElementById('oppCodeInput').value.trim();
-            if(!tid) return;
-
-            if(tid.toUpperCase() === 'BOT') {
+            
+            if(!tid || tid.toUpperCase() === 'BOT') {
                 isBotMode = true; oppNickname = "🤖 알파다이스";
                 isHost = true; isMyTurn = true;
                 startGame(); return;
@@ -304,9 +374,19 @@
                 switch(data.type) {
                     case 'JOIN': oppNickname = data.nickname; isMyTurn = true; conn.send({ type: 'ACCEPT', nickname: myNickname }); startGame(); break;
                     case 'ACCEPT': oppNickname = data.nickname; isMyTurn = false; startGame(); break;
-                    case 'SYNC_ROLL': diceValues = data.diceValues; rollsLeft = data.rollsLeft; updateUI(); checkAndPlayYachtEffect(); break;
+                    case 'SYNC_ROLL': 
+                        isRolling = true; updateUI();
+                        playRollingAnimation(data.diceValues, () => {
+                            diceValues = data.diceValues; rollsLeft = data.rollsLeft; isRolling = false;
+                            updateUI(); checkAndPlayYachtEffect(); 
+                        });
+                        break;
                     case 'SYNC_HOLD': isHeld[data.index] = data.isHeld; updateUI(); break;
-                    case 'SYNC_SCORE': oppScores[data.category] = data.score; if(!checkGameEnd()) { isMyTurn = true; resetTurnData(); updateUI(); } break;
+                    case 'SYNC_SCORE': 
+                        oppScores[data.category] = data.score; 
+                        lastScoredId = `opp-${data.category}`;
+                        if(!checkGameEnd()) { isMyTurn = true; resetTurnData(); updateUI(); } 
+                        break;
                     case 'SURRENDER': handleOpponentSurrender(); break;
                     case 'REMATCH_PUSH': isOppWantRematch = true; handleRematchLogic(); break;
                     case 'REMATCH_START': resetFullGame(data.starterNickname); break;
@@ -317,8 +397,12 @@
 
         function startGame() {
             switchView('game-view');
+            document.getElementById('gameover-overlay').classList.remove('show');
+            document.getElementById('actionButtons').style.display = 'block'; // 버튼 부활
             document.getElementById('p1Name').innerText = myNickname; document.getElementById('p2Name').innerText = oppNickname;
-            myScores = {}; oppScores = {}; initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
+            myScores = {}; oppScores = {}; 
+            lastScoredId = null; 
+            initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
         }
 
         function initDiceUI() {
@@ -340,20 +424,46 @@
             lowerCategories.forEach(cat => lowerBody.innerHTML += createRow(cat));
         }
 
+        function playRollingAnimation(targetValues, callback) {
+            let count = 0;
+            const animInterval = setInterval(() => {
+                for(let i=0; i<5; i++) {
+                    if(!isHeld[i]) {
+                        document.getElementById('die-'+i).innerText = Math.floor(Math.random()*6)+1;
+                    }
+                }
+                count++;
+                if(count >= 10) { 
+                    clearInterval(animInterval);
+                    if(callback) callback();
+                }
+            }, 40);
+        }
+
         function rollDice() {
-            if(!isMyTurn || rollsLeft <= 0) return;
-            for(let i=0; i<5; i++) if(!isHeld[i]) diceValues[i] = Math.floor(Math.random()*6)+1;
-            rollsLeft--; updateUI(); checkAndPlayYachtEffect();
-            if(conn && !isBotMode) conn.send({ type: 'SYNC_ROLL', diceValues, rollsLeft });
+            if(!isMyTurn || rollsLeft <= 0 || isRolling) return;
+            
+            isRolling = true; updateUI(); 
+            let newValues = [...diceValues];
+            for(let i=0; i<5; i++) if(!isHeld[i]) newValues[i] = Math.floor(Math.random()*6)+1;
+            rollsLeft--; 
+            
+            if(conn && !isBotMode) conn.send({ type: 'SYNC_ROLL', diceValues: newValues, rollsLeft });
+
+            playRollingAnimation(newValues, () => {
+                diceValues = newValues; isRolling = false;
+                updateUI(); checkAndPlayYachtEffect();
+            });
         }
 
         function toggleHold(index) {
-            if(!isMyTurn || rollsLeft === 3) return;
+            if(!isMyTurn || rollsLeft === 3 || isRolling) return;
             isHeld[index] = !isHeld[index]; updateUI();
             if(conn && !isBotMode) conn.send({ type: 'SYNC_HOLD', index, isHeld: isHeld[index] });
         }
 
         function surrender() {
+            if(isRolling) return;
             if(!confirm("정말 기권하시겠습니까?")) return;
             if(isBotMode) { showVictoryScreen(oppNickname); return; }
             if(conn) conn.send({ type: 'SURRENDER' });
@@ -363,30 +473,44 @@
         function handleOpponentSurrender() { alert("상대방이 기권했습니다!"); showVictoryScreen(myNickname); }
 
         function selectScore(catId) {
-            if(!isMyTurn || rollsLeft === 3 || myScores[catId] !== undefined) return;
+            if(!isMyTurn || rollsLeft === 3 || myScores[catId] !== undefined || isRolling) return;
+            
             let p = getPotentialScores(); myScores[catId] = p[catId];
+            lastScoredId = `my-${catId}`; 
+
             if(conn && !isBotMode) conn.send({ type: 'SYNC_SCORE', category: catId, score: myScores[catId] });
             
             isMyTurn = false; resetTurnData(); updateUI();
-            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1000); } 
+            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1500); } 
             else { checkGameEnd(); }
         }
 
         function runBotLogic() {
-            if (isMyTurn || checkGameEnd()) return;
+            if (isMyTurn || checkGameEnd() || isRolling) return;
             
             if (rollsLeft === 3) { 
-                botRollDice(); checkAndPlayYachtEffect(); setTimeout(runBotLogic, 1000); 
+                botRollDice(() => { setTimeout(runBotLogic, 1500); }); 
             } else if (rollsLeft > 0) { 
-                botDecideHolds(); botRollDice(); checkAndPlayYachtEffect(); setTimeout(runBotLogic, 1000); 
+                botDecideHolds(); 
+                setTimeout(() => {
+                    botRollDice(() => { setTimeout(runBotLogic, 1500); }); 
+                }, 1000);
             } else { 
-                botSelectScore(); 
+                setTimeout(botSelectScore, 800);
             }
         }
 
-        function botRollDice() { 
-            for(let i=0; i<5; i++) { if(!isHeld[i]) diceValues[i] = Math.floor(Math.random()*6)+1; } 
-            rollsLeft--; updateUI(); 
+        function botRollDice(callback) { 
+            isRolling = true; updateUI();
+            let newValues = [...diceValues];
+            for(let i=0; i<5; i++) { if(!isHeld[i]) newValues[i] = Math.floor(Math.random()*6)+1; } 
+            rollsLeft--; 
+            
+            playRollingAnimation(newValues, () => {
+                diceValues = newValues; isRolling = false;
+                updateUI(); checkAndPlayYachtEffect();
+                if(callback) callback();
+            });
         }
         
         function botDecideHolds() {
@@ -408,9 +532,18 @@
                     const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
                     for (let catId of sacrificeOrder) { if (oppScores[catId] === undefined) { bestCat = catId; break; } }
                 }
-                if(bestCat !== null) oppScores[bestCat] = p[bestCat];
+                if(bestCat !== null) {
+                    oppScores[bestCat] = p[bestCat];
+                    lastScoredId = `opp-${bestCat}`;
+                }
             } catch (e) {
-                for (let cat of categories) { if (oppScores[cat.id] === undefined) { oppScores[cat.id] = 0; break; } }
+                for (let cat of categories) { 
+                    if (oppScores[cat.id] === undefined) { 
+                        oppScores[cat.id] = 0; 
+                        lastScoredId = `opp-${cat.id}`;
+                        break; 
+                    } 
+                }
             }
             isMyTurn = true; resetTurnData(); updateUI(); checkGameEnd();
         }
@@ -438,30 +571,40 @@
         function updateUI() {
             for(let i=0; i<5; i++) {
                 let d = document.getElementById('die-'+i);
-                d.innerText = (rollsLeft===3 && diceValues[i]===1) ? '🎲' : diceValues[i];
-                d.className = 'dice' + (isHeld[i] ? ' held' : '');
+                if(!isRolling || isHeld[i]) d.innerText = (rollsLeft===3 && diceValues[i]===1) ? '🎲' : diceValues[i];
+                if(isRolling && !isHeld[i]) d.className = 'dice rolling';
+                else d.className = 'dice' + (isHeld[i] ? ' held' : '');
             }
 
             const turnElement = document.getElementById('turnText');
             if(isMyTurn) {
-                turnElement.innerText = "🔥 내 차례입니다!";
+                turnElement.innerText = isRolling ? "주사위 굴리는 중..." : "🔥 내 차례입니다!";
                 turnElement.style.color = "#2ecc71";
             } else {
                 turnElement.innerText = isBotMode ? "🤖 알파다이스가 생각 중..." : `⌛ ${oppNickname}님의 차례...`;
                 turnElement.style.color = "#e74c3c";
             }
             
-            document.getElementById('rollBtn').disabled = !isMyTurn || rollsLeft <= 0;
-            document.getElementById('surrenderBtn').disabled = !isMyTurn;
+            document.getElementById('rollBtn').disabled = !isMyTurn || rollsLeft <= 0 || isRolling;
+            document.getElementById('surrenderBtn').disabled = !isMyTurn || isRolling;
             document.getElementById('rollsLeftText').innerText = rollsLeft;
 
             let myPot = getPotentialScores();
             categories.forEach(cat => {
                 let m = document.getElementById(`my-${cat.id}`), o = document.getElementById(`opp-${cat.id}`);
                 o.innerText = oppScores[cat.id] !== undefined ? oppScores[cat.id] : '';
-                if(myScores[cat.id] !== undefined) { m.innerText = myScores[cat.id]; m.className = 'score-cell filled'; }
-                else if(isMyTurn && rollsLeft < 3) { m.innerText = myPot[cat.id]; m.className = 'score-cell potential'; }
-                else { m.innerText = ''; m.className = 'score-cell'; }
+                o.className = 'score-cell' + (oppScores[cat.id] !== undefined ? ' filled' : '');
+                
+                if(myScores[cat.id] !== undefined) { 
+                    m.innerText = myScores[cat.id]; m.className = 'score-cell filled'; 
+                } else if(isMyTurn && rollsLeft < 3 && !isRolling) { 
+                    m.innerText = myPot[cat.id]; m.className = 'score-cell potential'; 
+                } else { 
+                    m.innerText = ''; m.className = 'score-cell'; 
+                }
+
+                if (lastScoredId === `my-${cat.id}`) m.classList.add('last-scored');
+                if (lastScoredId === `opp-${cat.id}`) o.classList.add('last-scored');
             });
 
             let myRes = calculateScores(myScores), oppRes = calculateScores(oppScores);
@@ -485,8 +628,29 @@
         }
 
         function showVictoryScreen(winner) {
-            switchView('gameover-view'); lastWinner = winner; 
-            document.getElementById('winnerText').innerText = winner === "무승부" ? "🤝 무승부!" : `🎉 ${winner} 승리!`;
+            document.getElementById('gameover-overlay').classList.add('show');
+            document.getElementById('actionButtons').style.display = 'none'; // 버튼 숨김
+
+            lastWinner = winner; 
+            
+            let isWin = winner === myNickname;
+            let isDraw = winner === "무승부";
+            let isBotWin = winner === oppNickname && isBotMode;
+
+            // 💡 주사위 위치에 승패 연출 텍스트 띄우기
+            const diceCont = document.getElementById('diceContainer');
+            if(isDraw) {
+                diceCont.innerHTML = '<div class="result-dice-text" style="color:#bdc3c7;">🤝 무승부 🤝</div>';
+            } else if(isWin) {
+                diceCont.innerHTML = '<div class="result-dice-text" style="color:#2ecc71;">🎉 승 리 🎉</div>';
+            } else {
+                diceCont.innerHTML = '<div class="result-dice-text" style="color:#e74c3c;">😭 패 배 😭</div>';
+            }
+            
+            let wText = isDraw ? "🤝 무승부!" : `🎉 ${winner} 승리!`;
+            if (isBotWin) wText = "😭 알파다이스 승리..."; 
+            
+            document.getElementById('winnerText').innerText = wText;
             document.getElementById('finalScoreMsg').innerText = `나: ${calculateScores(myScores).total}점 | 상대: ${calculateScores(oppScores).total}점`;
             amIWantRematch = false; isOppWantRematch = false;
             document.getElementById('rematchStatus').innerText = ""; document.getElementById('rematchBtn').disabled = false;
@@ -495,7 +659,7 @@
         function requestRematch() {
             if(isBotMode) {
                 let starter = (lastWinner === myNickname) ? oppNickname : myNickname;
-                resetFullGame(starter); if(!isMyTurn) setTimeout(runBotLogic, 1000); return;
+                resetFullGame(starter); if(!isMyTurn) setTimeout(runBotLogic, 1500); return;
             }
             amIWantRematch = true; document.getElementById('rematchBtn').disabled = true;
             if(conn) conn.send({ type: 'REMATCH_PUSH' });
