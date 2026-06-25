@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - Global Edition (Table Compact Fix)</title>
+    <title>Yacht Dice - Global Edition (Error Handling)</title>
     
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -70,6 +70,9 @@
         .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-weight: bold; }
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
         
+        /* 💡 에러 메시지 스타일 */
+        .error-msg { color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 12px; display: none; animation: popHighlight 0.3s ease-out; }
+
         #actionButtons { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
 
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(26, 37, 47, 0.4); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; justify-content: flex-end; padding-bottom: 30px; }
@@ -79,27 +82,18 @@
         @media (max-width: 400px) {
             h2 { font-size: 44px; margin-top: 40px; margin-bottom: 15px; line-height: 1.1; } 
             .dice { width: 45px; height: 45px; font-size: 24px; border-radius: 8px; } .dice-container { gap: 8px; } button { font-size: 14px; padding: 10px 15px; } 
-            
             #actionButtons button { margin: 0; flex: 1; }
             #surrenderBtn { flex: 0.4; } 
-
-            /* 💡 점수판 모바일 최적화 (줄바꿈 방지 및 비율 조정) */
             table { margin: 5px auto; table-layout: fixed; }
-            th:first-child { width: 48%; } /* 항목명에 공간을 좀 더 줌 */
+            th:first-child { width: 48%; } 
             th, td { padding: 6px 2px; word-break: keep-all; white-space: nowrap; } 
             th { font-size: 12px; }
-            
-            /* 항목명 강제 한줄 표시 및 말줄임 방지 */
             .cat-name { font-size: 11px; white-space: nowrap; } 
             .cat-name i { margin-right: 4px; }
-            
-            /* 서브 텍스트(최대 몇점)를 줄바꿈해서 아이콘 바로 밑에 예쁘게 배치 */
             .max-score { display: block; float: none; margin-top: 2px; font-size: 9px; line-height: 1.1; color: #bdc3c7; }
-            
             .score-cell { font-size: 14px; }
             .bonus-row { font-size: 11px; }
-            .bonus-row .cat-name { line-height: 1.2; } /* 보너스칸 설명만 살짝 여유있게 */
-            
+            .bonus-row .cat-name { line-height: 1.2; } 
             .guide-section { font-size: 11px; } #guide-grid { grid-template-columns: 1fr !important; gap: 5px !important; } 
         }
     </style>
@@ -114,7 +108,6 @@
         <p data-i18n="nicknameGuide" style="color: #bdc3c7; font-size: 15px; margin-bottom: 15px; font-weight: bold;">
             상대방에게 보여질 닉네임을 입력해 주세요.
         </p>
-        
         <input type="text" id="nicknameInput" data-i18n="idPlaceholder" placeholder="아이디 입력 (빈칸 시 랜덤)"><br>
         <button class="btn-red" onclick="enterLobby()" data-i18n="loginBtn" style="width: 500px; max-width: 100%; margin: 5px 0;">게임 접속</button>
 
@@ -135,7 +128,9 @@
             <div id="copyHint" class="copy-hint" data-i18n="copyHintTxt"><i class="fa-regular fa-copy"></i> 터치해서 복사하기</div>
         </div><br>
         <input type="text" id="oppCodeInput" data-i18n="oppPlaceholder" placeholder="상대방 코드 입력 (빈칸 시 봇전)"><br>
-        <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled data-i18n="startBtn" style="width: 500px; max-width: 100%; margin-top: 10px;">게임 시작</button>
+        <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" data-i18n="startBtn" style="width: 500px; max-width: 100%; margin-top: 10px;">게임 시작</button>
+        
+        <div id="connectionErrorMsg" class="error-msg"></div>
     </div>
 
     <div id="game-view" class="view">
@@ -205,9 +200,16 @@
             <button class="btn-purple" id="captureBtn" onclick="captureScoreboard()" style="width: 100%; margin-bottom: 10px;">
                 <i class="fa-solid fa-camera"></i> <span data-i18n="captureBtnTxt">점수판 캡쳐</span>
             </button>
-            <div style="display: flex; justify-content: space-between; gap: 10px;">
-                <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px;" data-i18n="rematchBtnTxt">다시하기</button>
-                <button class="btn-red" onclick="location.reload()" style="flex: 1; font-size: 14px;" data-i18n="exitBtnTxt">종료</button>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn-red" id="levelUpBtn" onclick="triggerLevelUpRematch()" style="display: none; font-size: 15px; width: 100%; margin: 0;">
+                    🔥 <span data-i18n="levelUpBtnTxt">더 강한 상대에게 도전</span>
+                </button>
+                
+                <div style="display: flex; justify-content: space-between; gap: 10px;">
+                    <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px; margin: 0;" data-i18n="rematchBtnTxt">다시하기</button>
+                    <button class="btn-blue" onclick="location.reload()" style="flex: 1; font-size: 14px; margin: 0;" data-i18n="exitBtnTxt">종료</button>
+                </div>
             </div>
             <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7; font-size: 12px;"></div>
         </div>
@@ -215,7 +217,7 @@
 
     <script>
         // =========================================================================
-        // 🌐 i18n + l10n 시스템
+        // 🌐 i18n + l10n 시스템 (에러 메시지 번역 추가)
         // =========================================================================
         const i18n = {
             ko: {
@@ -227,10 +229,14 @@
                 guideTitle: "<i class='fa-solid fa-book'></i> 점수 계산 방법",
                 guideLeft: "<b>• Aces~Sixes:</b> 해당 숫자들의 합<br><b>• Choice:</b> 모든 주사위의 합<br><b>• 4 of a Kind:</b> 4개 이상 동일 (전체 합)<br><b>• Full House:</b> 3개 + 2개 동일 (전체 합)",
                 guideRight: "<b>• S. Straight:</b> 4개 연속 숫자 (15점)<br><b>• L. Straight:</b> 5개 연속 숫자 (30점)<br><b>• Yacht:</b> 5개 동일 숫자 (50점)<br><b style='color: #f1c40f;'>⭐ 상단 63점 이상 시 +35점!</b>",
-                captureBtnTxt: "점수판 캡쳐", rematchBtnTxt: "다시하기", exitBtnTxt: "종료", botName: "🤖 알파다이스", userStr: "유저", maxTxt: "최대", fixTxt: "점",
-                myTxtStr: "나", oppTxtStr: "상대", myTurn: "🔥 내 차례입니다!", botThinking: "🤖 알파다이스가 생각 중...", oppTurn: "님의 차례...",
+                captureBtnTxt: "점수판 캡쳐", rematchBtnTxt: "다시하기", retryBtnTxt: "현재 난이도 재도전", levelUpBtnTxt: "더 강한 상대에게 도전", exitBtnTxt: "종료", botName: "🤖 알파다이스", userStr: "유저", maxTxt: "최대", fixTxt: "점",
+                myTxtStr: "나", oppTxtStr: "상대", myTurn: "🔥 내 차례입니다!", botThinking: "🤖 생각 중...", oppTurn: "님의 차례...",
                 draw: "🤝 무승부 🤝", win: "🎉 승 리 🎉", lose: "😭 패 배 😭", botLose: "😭 알파다이스 승리...", winMsg: "승리!",
-                surrenderAlert: "정말 기권하시겠습니까?", oppSurrenderAlert: "상대방이 기권했습니다!", connClosed: "연결이 종료되었습니다.", botSurrenderMsg: "🤖 알파다이스: 계산 결과 승률 0%... 기권하겠습니다."
+                surrenderAlert: "정말 기권하시겠습니까?", oppSurrenderAlert: "상대방이 기권했습니다!", connClosed: "연결이 종료되었습니다.", botSurrenderMsg: "🤖 계산 결과 승률 0%... 기권하겠습니다.",
+                connectingBtn: "연결 중...",
+                errNotFound: "상대방 방이 없습니다. 코드를 확인하거나 상대방이 나갔는지 확인하세요.",
+                errNetwork: "네트워크 오류가 발생했습니다. (방화벽/VPN 확인)",
+                errGeneric: "연결에 실패했습니다. 다시 시도해 주세요."
             },
             en: {
                 mainTitle: "🎲 YACHT DICE ONLINE 🎲", nicknameGuide: "Enter a nickname to show your opponent.",
@@ -241,10 +247,14 @@
                 guideTitle: "<i class='fa-solid fa-book'></i> How to Play",
                 guideLeft: "<b>• Aces~Sixes:</b> Sum of specific dice<br><b>• Choice:</b> Sum of all dice<br><b>• 4 of a Kind:</b> 4+ same dice (Sum all)<br><b>• Full House:</b> 3 same + 2 same (Sum all)",
                 guideRight: "<b>• S. Straight:</b> 4 sequential (15 pts)<br><b>• L. Straight:</b> 5 sequential (30 pts)<br><b>• Yacht:</b> 5 same dice (50 pts)<br><b style='color: #f1c40f;'>⭐ Subtotal ≥ 63 gets +35 pts!</b>",
-                captureBtnTxt: "Capture Score", rematchBtnTxt: "Rematch", exitBtnTxt: "Exit", botName: "🤖 AlphaDice", userStr: "User", maxTxt: "Max", fixTxt: "Pts",
-                myTxtStr: "Me", oppTxtStr: "Opp", myTurn: "🔥 Your Turn!", botThinking: "🤖 AlphaDice thinking...", oppTurn: "'s Turn...",
+                captureBtnTxt: "Capture Score", rematchBtnTxt: "Rematch", retryBtnTxt: "Retry Same Level", levelUpBtnTxt: "Challenge Stronger Bot", exitBtnTxt: "Exit", botName: "🤖 AlphaDice", userStr: "User", maxTxt: "Max", fixTxt: "Pts",
+                myTxtStr: "Me", oppTxtStr: "Opp", myTurn: "🔥 Your Turn!", botThinking: "🤖 Thinking...", oppTurn: "'s Turn...",
                 draw: "🤝 DRAW 🤝", win: "🎉 VICTORY 🎉", lose: "😭 DEFEAT 😭", botLose: "😭 AlphaDice Wins...", winMsg: "Wins!",
-                surrenderAlert: "Are you sure you want to surrender?", oppSurrenderAlert: "The opponent surrendered!", connClosed: "Connection closed.", botSurrenderMsg: "🤖 AlphaDice: 0% Win Rate detected... I surrender."
+                surrenderAlert: "Are you sure you want to surrender?", oppSurrenderAlert: "The opponent surrendered!", connClosed: "Connection closed.", botSurrenderMsg: "🤖 0% Win Rate detected... I surrender.",
+                connectingBtn: "Connecting...",
+                errNotFound: "Opponent not found. Check the code or if they left.",
+                errNetwork: "Network error. (Check firewall/VPN)",
+                errGeneric: "Connection failed. Please try again."
             },
             ja: {
                 mainTitle: "🎲 YACHT DICE ONLINE 🎲", nicknameGuide: "相手に表示されるニックネームを入力してください。",
@@ -255,10 +265,14 @@
                 guideTitle: "<i class='fa-solid fa-book'></i> 点数計算方法",
                 guideLeft: "<b>• Aces~Sixes:</b> 該当する数字の合計<br><b>• Choice:</b> 全サイコロの合計<br><b>• 4 of a Kind:</b> 4つ以上同じ数字 (全合計)<br><b>• Full House:</b> 3つ同じ＋2つ同じ (全合計)",
                 guideRight: "<b>• S. Straight:</b> 4連続の数字 (15点)<br><b>• L. Straight:</b> 5連続の数字 (30点)<br><b>• Yacht:</b> 5つ同じ数字 (50点)<br><b style='color: #f1c40f;'>⭐ 小計63点以上で+35点!</b>",
-                captureBtnTxt: "スコアを保存", rematchBtnTxt: "もう一度", exitBtnTxt: "終了", botName: "🤖 アルファダイス", userStr: "ユーザー", maxTxt: "最大", fixTxt: "点",
-                myTxtStr: "私", oppTxtStr: "相手", myTurn: "🔥 あなたの番です!", botThinking: "🤖 アルファダイスが思考中...", oppTurn: " の番です...",
+                captureBtnTxt: "スコアを保存", rematchBtnTxt: "もう一度", retryBtnTxt: "同じ難易度で再挑戦", levelUpBtnTxt: "より強い相手に挑戦", exitBtnTxt: "終了", botName: "🤖 アルファダイス", userStr: "ユーザー", maxTxt: "最大", fixTxt: "点",
+                myTxtStr: "私", oppTxtStr: "相手", myTurn: "🔥 あなたの番です!", botThinking: "🤖 思考中...", oppTurn: " の番です...",
                 draw: "🤝 引き分け 🤝", win: "🎉 勝利 🎉", lose: "😭 敗北 😭", botLose: "😭 アルファダイスの勝利...", winMsg: "の勝利!",
-                surrenderAlert: "本当に降参しますか？", oppSurrenderAlert: "相手が降参しました！", connClosed: "接続が切れました。", botSurrenderMsg: "🤖 アルファダイス: 勝率0%を検出… 降参します。"
+                surrenderAlert: "本当に降参しますか？", oppSurrenderAlert: "相手が降参しました！", connClosed: "接続が切れました。", botSurrenderMsg: "🤖 勝率0%を検出… 降参します。",
+                connectingBtn: "接続中...",
+                errNotFound: "相手が見つかりません。コードを確認するか、相手が退出していないか確認してください。",
+                errNetwork: "ネットワークエラーが発生しました。(ファイアウォール/VPNを確認)",
+                errGeneric: "接続に失敗しました。もう一度お試しください。"
             },
             'zh-CN': {
                 mainTitle: "🎲 快艇骰子 ONLINE 🎲", nicknameGuide: "请输入将向对手显示的昵称。",
@@ -269,10 +283,14 @@
                 guideTitle: "<i class='fa-solid fa-book'></i> 计分方式",
                 guideLeft: "<b>• Aces~Sixes:</b> 该数字的总和<br><b>• Choice:</b> 所有骰子的总和<br><b>• 4 of a Kind:</b> 至少4个相同数字 (全部总和)<br><b>• Full House:</b> 3个相同+2个相同 (全部总和)",
                 guideRight: "<b>• S. Straight:</b> 4个连续数字 (15分)<br><b>• L. Straight:</b> 5个连续数字 (30分)<br><b>• Yacht:</b> 5个相同数字 (50分)<br><b style='color: #f1c40f;'>⭐ 上半部达63分获得+35分!</b>",
-                captureBtnTxt: "截图计分板", rematchBtnTxt: "再来一局", exitBtnTxt: "结束", botName: "🤖 阿尔法骰子", userStr: "玩家", maxTxt: "最高", fixTxt: "分",
-                myTxtStr: "我", oppTxtStr: "对手", myTurn: "🔥 轮到你了!", botThinking: "🤖 机器人思考中...", oppTurn: " 的回合...",
+                captureBtnTxt: "截图计分板", rematchBtnTxt: "再来一局", retryBtnTxt: "重新挑战当前难度", levelUpBtnTxt: "挑战更强对手", exitBtnTxt: "结束", botName: "🤖 阿尔法骰子", userStr: "玩家", maxTxt: "最高", fixTxt: "分",
+                myTxtStr: "我", oppTxtStr: "对手", myTurn: "🔥 轮到你了!", botThinking: "🤖 思考中...", oppTurn: " 的回合...",
                 draw: "🤝 平局 🤝", win: "🎉 胜利 🎉", lose: "😭 失败 😭", botLose: "😭 机器人获胜...", winMsg: "获胜!",
-                surrenderAlert: "确定要投降吗？", oppSurrenderAlert: "对手已投降！", connClosed: "连接已断开。", botSurrenderMsg: "🤖 机器人: 计算胜率为0%... 我投降。"
+                surrenderAlert: "确定要投降吗？", oppSurrenderAlert: "对手已投降！", connClosed: "连接已断开。", botSurrenderMsg: "🤖 计算胜率为0%... 我投降。",
+                connectingBtn: "连接中...",
+                errNotFound: "找不到对手。请检查房号或对手是否已离开。",
+                errNetwork: "网络错误。(请检查防火墙/VPN)",
+                errGeneric: "连接失败。请重试。"
             },
             'zh-TW': {
                 mainTitle: "🎲 快艇骰子 ONLINE 🎲", nicknameGuide: "請輸入將向對手顯示的暱稱。",
@@ -283,10 +301,14 @@
                 guideTitle: "<i class='fa-solid fa-book'></i> 計分方式",
                 guideLeft: "<b>• Aces~Sixes:</b> 該數字的總和<br><b>• Choice:</b> 所有骰子的總和<br><b>• 4 of a Kind:</b> 至少4個相同數字 (全部總和)<br><b>• Full House:</b> 3個相同+2個相同 (全部總和)",
                 guideRight: "<b>• S. Straight:</b> 4個連續數字 (15分)<br><b>• L. Straight:</b> 5個連續數字 (30分)<br><b>• Yacht:</b> 5個相同數字 (50分)<br><b style='color: #f1c40f;'>⭐ 上半部達63分獲得+35分!</b>",
-                captureBtnTxt: "截圖計分板", rematchBtnTxt: "再來一局", exitBtnTxt: "結束", botName: "🤖 阿爾法骰子", userStr: "玩家", maxTxt: "最高", fixTxt: "分",
-                myTxtStr: "我", oppTxtStr: "對手", myTurn: "🔥 輪到你了!", botThinking: "🤖 機器人思考中...", oppTurn: " 的回合...",
+                captureBtnTxt: "截圖計分板", rematchBtnTxt: "再來一局", retryBtnTxt: "重新挑戰當前難度", levelUpBtnTxt: "挑戰更強對手", exitBtnTxt: "結束", botName: "🤖 阿爾法骰子", userStr: "玩家", maxTxt: "最高", fixTxt: "分",
+                myTxtStr: "我", oppTxtStr: "對手", myTurn: "🔥 輪到你了!", botThinking: "🤖 思考中...", oppTurn: " 的回合...",
                 draw: "🤝 平局 🤝", win: "🎉 勝利 🎉", lose: "😭 失敗 😭", botLose: "😭 機器人獲勝...", winMsg: "獲勝!",
-                surrenderAlert: "確定要投降嗎？", oppSurrenderAlert: "對手已投降！", connClosed: "連接已斷開。", botSurrenderMsg: "🤖 機器人: 計算勝率為0%... 我投降。"
+                surrenderAlert: "確定要投降嗎？", oppSurrenderAlert: "對手已投降！", connClosed: "連接已斷開。", botSurrenderMsg: "🤖 計算勝率為0%... 我投降。",
+                connectingBtn: "連接中...",
+                errNotFound: "找不到對手。請檢查房號或對手是否已離開。",
+                errNetwork: "網路錯誤。(請檢查防火牆/VPN)",
+                errGeneric: "連接失敗。請重試。"
             }
         };
 
@@ -313,7 +335,17 @@
                 document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
             }
             document.getElementById('p1Name').innerText = t.myTxtStr;
-            document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
+            if (isBotMode) {
+                document.getElementById('p2Name').innerText = t.botName + " Lv." + botLevel;
+            } else {
+                document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
+            }
+            
+            // 연결 중인 상태일 때 언어를 바꾸면 버튼 텍스트도 번역 적용
+            const connectBtn = document.getElementById('connectBtn');
+            if(connectBtn.disabled && connectBtn.innerText !== t.startBtn) {
+                connectBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t.connectingBtn}`;
+            }
         }
 
         function changeLanguage(lang) {
@@ -321,7 +353,7 @@
             applyLanguage();
             
             if (isBotMode) {
-                oppNickname = t.botName;
+                oppNickname = t.botName + " Lv." + botLevel;
                 document.getElementById('p2Name').innerText = oppNickname;
             }
             if (document.getElementById('game-view').classList.contains('active')) {
@@ -340,6 +372,8 @@
         let peer = null, conn = null, isHost = false;
         let isBotMode = false; 
         
+        let botLevel = 1; 
+
         let diceValues = [1, 1, 1, 1, 1];
         let isHeld = [false, false, false, false, false];
         let rollsLeft = 3;
@@ -377,7 +411,6 @@
             
             html2canvas(board, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
                 let link = document.createElement('a');
-                
                 const dateStr = new Intl.DateTimeFormat(sysLang, {
                     year: 'numeric', month: 'short', day: 'numeric',
                     hour: 'numeric', minute: 'numeric'
@@ -397,15 +430,10 @@
         function copyMyCode() {
             const codeText = document.getElementById('myCodeDisplay').innerText;
             if (codeText === 'Loading...' || codeText === '-' || codeText === '생성 중...') return;
-
             navigator.clipboard.writeText(codeText).then(() => {
                 const hintEl = document.getElementById('copyHint');
-                hintEl.innerHTML = t.copiedTxt;
-                hintEl.style.color = '#2ecc71';
-                setTimeout(() => {
-                    hintEl.innerHTML = t.copyHintTxt;
-                    hintEl.style.color = '#bdc3c7';
-                }, 2000);
+                hintEl.innerHTML = t.copiedTxt; hintEl.style.color = '#2ecc71';
+                setTimeout(() => { hintEl.innerHTML = t.copyHintTxt; hintEl.style.color = '#bdc3c7'; }, 2000);
             });
         }
 
@@ -476,22 +504,68 @@
             }
 
             switchView('lobby-view'); document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
+            
+            // 💡 Peer 객체 생성 및 에러 리스너 부착
             peer = new Peer();
-            peer.on('open', id => { document.getElementById('myCodeDisplay').innerText = id; document.getElementById('connectBtn').disabled = false; });
-            peer.on('connection', incoming => { if(conn) return; conn = incoming; isHost = true; setupConnection(); });
+            peer.on('open', id => { 
+                document.getElementById('myCodeDisplay').innerText = id; 
+                document.getElementById('connectBtn').disabled = false; 
+            });
+            
+            peer.on('connection', incoming => { 
+                if(conn) return; 
+                conn = incoming; isHost = true; 
+                setupConnection(); 
+            });
+
+            // 💡 PeerJS 자체 에러 감지 (방 없음, 네트워크 단절 등)
+            peer.on('error', err => {
+                const errorBox = document.getElementById('connectionErrorMsg');
+                const connectBtn = document.getElementById('connectBtn');
+                
+                errorBox.style.display = 'block';
+                
+                if (err.type === 'peer-unavailable') {
+                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errNotFound}`;
+                } else if (err.type === 'network' || err.type === 'disconnected') {
+                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errNetwork}`;
+                } else {
+                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errGeneric} (${err.type})`;
+                }
+                
+                // 버튼 상태 복구
+                connectBtn.disabled = false;
+                connectBtn.innerText = t.startBtn;
+            });
         }
 
         function connectToOpponent() {
             const tid = document.getElementById('oppCodeInput').value.trim();
+            const errorBox = document.getElementById('connectionErrorMsg');
+            const connectBtn = document.getElementById('connectBtn');
             
+            // 기존 에러 숨기기 및 버튼 로딩 처리
+            errorBox.style.display = 'none';
+            connectBtn.disabled = true;
+            connectBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t.connectingBtn}`;
+
             if(!tid || tid.toUpperCase() === 'BOT') {
-                isBotMode = true; oppNickname = t.botName;
+                isBotMode = true; 
+                botLevel = 1; 
+                oppNickname = t.botName + " Lv." + botLevel;
                 isHost = true; isMyTurn = true;
-                startGame(); return;
+                setTimeout(startGame, 500); // 봇전은 0.5초 로딩 후 즉시 시작
+                return;
             }
 
             conn = peer.connect(tid); isHost = false;
-            conn.on('open', () => conn.send({ type: 'JOIN', nickname: myNickname }));
+            
+            // 💡 연결 성공 시
+            conn.on('open', () => {
+                conn.send({ type: 'JOIN', nickname: myNickname });
+                // setupConnection은 여기서 부르지 않고 전체 로직에서 커버됨
+            });
+            
             setupConnection();
         }
 
@@ -530,6 +604,13 @@
             myScores = {}; oppScores = {}; 
             lastScoredId = null; 
             initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
+            
+            // 💡 게임 시작 성공 시 로비 버튼 텍스트 원래대로 복구 (다시 돌아올 경우 대비)
+            const connectBtn = document.getElementById('connectBtn');
+            if(connectBtn) {
+                connectBtn.disabled = false;
+                connectBtn.innerText = t.startBtn;
+            }
         }
 
         function initDiceUI() {
@@ -674,6 +755,10 @@
             }
         }
 
+        function getMistakeChance() {
+            return Math.max(0, 50 - (botLevel * 10)); 
+        }
+
         function botRollDice(callback) { 
             isRolling = true; updateUI();
             let newValues = [...diceValues];
@@ -688,10 +773,15 @@
         }
         
         function botDecideHolds() {
-            let counts = [0,0,0,0,0,0,0]; diceValues.forEach(d => counts[d]++);
-            let maxFreq = Math.max(...counts.slice(1)); 
-            let targetNum = counts.lastIndexOf(maxFreq);
-            for(let i=0; i<5; i++) { if (diceValues[i] === targetNum) isHeld[i] = true; }
+            let mistake = getMistakeChance();
+            if (Math.random() * 100 < mistake) {
+                for(let i=0; i<5; i++) { isHeld[i] = Math.random() > 0.5; }
+            } else {
+                let counts = [0,0,0,0,0,0,0]; diceValues.forEach(d => counts[d]++);
+                let maxFreq = Math.max(...counts.slice(1)); 
+                let targetNum = counts.lastIndexOf(maxFreq);
+                for(let i=0; i<5; i++) { if (diceValues[i] === targetNum) isHeld[i] = true; }
+            }
             updateUI();
         }
 
@@ -699,13 +789,21 @@
             try {
                 let p = getPotentialScores(); 
                 let bestCat = null; let bestScore = -1;
-                for (let cat of categories) {
-                    if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { bestScore = p[cat.id]; bestCat = cat.id; }
+                let mistake = getMistakeChance();
+                let availableCats = categories.filter(c => oppScores[c.id] === undefined);
+
+                if (Math.random() * 100 < mistake && availableCats.length > 0) {
+                    bestCat = availableCats[Math.floor(Math.random() * availableCats.length)].id;
+                } else {
+                    for (let cat of categories) {
+                        if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { bestScore = p[cat.id]; bestCat = cat.id; }
+                    }
+                    if (bestScore === 0 || bestCat === null) {
+                        const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
+                        for (let catId of sacrificeOrder) { if (oppScores[catId] === undefined) { bestCat = catId; break; } }
+                    }
                 }
-                if (bestScore === 0 || bestCat === null) {
-                    const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
-                    for (let catId of sacrificeOrder) { if (oppScores[catId] === undefined) { bestCat = catId; break; } }
-                }
+
                 if(bestCat !== null) {
                     oppScores[bestCat] = p[bestCat];
                     lastScoredId = `opp-${bestCat}`;
@@ -810,6 +908,21 @@
             let isDraw = winner === "무승부";
             let isBotWin = winner === oppNickname && isBotMode;
 
+            const levelUpBtn = document.getElementById('levelUpBtn');
+            const rematchBtn = document.getElementById('rematchBtn');
+            
+            if (isBotMode) {
+                rematchBtn.innerText = t.retryBtnTxt; 
+                if (isWin) {
+                    levelUpBtn.style.display = 'block'; 
+                } else {
+                    levelUpBtn.style.display = 'none';
+                }
+            } else {
+                levelUpBtn.style.display = 'none';
+                rematchBtn.innerText = t.rematchBtnTxt; 
+            }
+
             const diceCont = document.getElementById('diceContainer');
             if(isDraw) {
                 diceCont.innerHTML = `<div class="result-dice-text" style="color:#bdc3c7;">${t.draw}</div>`;
@@ -836,11 +949,24 @@
         function requestRematch() {
             if(isBotMode) {
                 let starter = (lastWinner === myNickname) ? oppNickname : myNickname;
+                oppNickname = t.botName + " Lv." + botLevel;
+                document.getElementById('p2Name').innerText = oppNickname;
                 resetFullGame(starter); if(!isMyTurn) setTimeout(runBotLogic, 1500); return;
             }
             amIWantRematch = true; document.getElementById('rematchBtn').disabled = true;
             if(conn) conn.send({ type: 'REMATCH_PUSH' });
             handleRematchLogic();
+        }
+
+        function triggerLevelUpRematch() {
+            if(isBotMode) {
+                botLevel++;
+                oppNickname = t.botName + " Lv." + botLevel;
+                document.getElementById('p2Name').innerText = oppNickname;
+                let starter = oppNickname; 
+                resetFullGame(starter); 
+                if(!isMyTurn) setTimeout(runBotLogic, 1500); 
+            }
         }
 
         function handleRematchLogic() {
