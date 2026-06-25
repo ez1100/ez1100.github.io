@@ -2,11 +2,15 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Yacht Dice - 솔로 & 멀티플레이 (알파다이스 수리 완료)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Yacht Dice - 반응형 모바일 최적화</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #1a252f; color: white; margin: 0; padding: 20px; overflow-x: hidden; }
+        /* 모든 요소에 box-sizing 적용 (모바일 삐져나감 방지) */
+        * { box-sizing: border-box; }
+        
+        body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #1a252f; color: white; margin: 0; padding: 15px; overflow-x: hidden; }
         .view { display: none; }
         .active { display: block; }
         
@@ -19,28 +23,47 @@
         .btn-blue { background-color: #3498db; color: white; }
         button:disabled { background-color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
 
-        .dice-container { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
-        .dice { width: 60px; height: 60px; background-color: #ecf0f1; color: #2c3e50; font-size: 32px; font-weight: bold; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; }
+        .dice-container { display: flex; justify-content: center; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+        .dice { width: 55px; height: 55px; background-color: #ecf0f1; color: #2c3e50; font-size: 30px; font-weight: bold; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; }
         .dice.held { background-color: #f1c40f; color: #000; transform: translateY(5px); box-shadow: none; }
         
-        table { margin: 20px auto; border-collapse: collapse; width: 450px; background-color: #fff; color: #333; border-radius: 10px; overflow: hidden; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        /* 💡 테이블 가로 길이를 %로 변경하여 화면에 맞게 꽉 차도록 수정 */
+        table { margin: 15px auto; border-collapse: collapse; width: 100%; max-width: 450px; background-color: #fff; color: #333; border-radius: 10px; overflow: hidden; }
+        th, td { border: 1px solid #ddd; padding: 8px 5px; text-align: center; }
         th { background-color: #2c3e50; color: white; font-size: 14px; }
-        .cat-name { text-align: left; background-color: #f8f9fa; font-weight: bold; font-size: 13px; width: 180px; position: relative; }
-        .cat-name i { margin-right: 8px; color: #555; }
+        
+        .cat-name { text-align: left; background-color: #f8f9fa; font-weight: bold; font-size: 13px; width: 45%; position: relative; }
+        .cat-name i { margin-right: 6px; color: #555; }
         .max-score { color: #95a5a6; font-size: 11px; float: right; font-weight: normal; line-height: 1.5; }
         
-        .score-cell { font-weight: bold; width: 80px; font-size: 16px; }
+        .score-cell { font-weight: bold; width: 27%; font-size: 16px; }
         .score-cell.potential { color: #2ecc71; background-color: #f0fff0; cursor: pointer; }
         .score-cell.filled { color: #2c3e50; background-color: #f8f9fa; }
 
         .bonus-row { background-color: #ebf5fb; font-size: 13px; font-weight: bold; }
         .bonus-achieved { background-color: #f1c40f !important; color: #000 !important; font-weight: bold; }
 
-        .guide-section { max-width: 600px; margin: 40px auto; text-align: left; background-color: #2c3e50; padding: 20px; border-radius: 10px; font-size: 13px; line-height: 1.6; color: #bdc3c7; }
-        .guide-section h4 { color: #f1c40f; margin-top: 0; }
-        .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 20px 0; font-family: monospace; }
-        .status-msg { font-size: 20px; font-weight: bold; margin: 15px 0; color: #f1c40f; }
+        .guide-section { width: 100%; max-width: 450px; margin: 20px auto; text-align: left; background-color: #2c3e50; padding: 15px; border-radius: 10px; font-size: 12px; line-height: 1.5; color: #bdc3c7; }
+        .guide-section h4 { color: #f1c40f; margin-top: 0; margin-bottom: 10px; }
+        
+        /* 입력창들도 모바일에서 안 삐져나가게 수정 */
+        input { max-width: 100%; width: 250px; padding: 10px; border-radius: 5px; border: none; text-align: center; }
+        .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0; font-family: monospace; word-break: break-all; max-width: 100%; }
+        .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
+
+        /* 📱 모바일 세로 화면(좁은 화면)을 위한 미디어 쿼리 */
+        @media (max-width: 400px) {
+            h2 { font-size: 22px; }
+            .dice { width: 45px; height: 45px; font-size: 24px; border-radius: 8px; }
+            .dice-container { gap: 8px; }
+            button { font-size: 14px; padding: 10px 15px; }
+            .cat-name { font-size: 11px; }
+            .score-cell { font-size: 14px; }
+            .max-score { display: block; float: none; margin-top: 2px; font-size: 10px; }
+            .guide-section { font-size: 11px; }
+            /* 모바일 가이드는 위아래로 한 줄씩 배치 */
+            #guide-grid { grid-template-columns: 1fr !important; gap: 5px !important; } 
+        }
     </style>
 </head>
 <body>
@@ -50,14 +73,14 @@
     <h2>🎲 YACHT DICE ONLINE 🎲</h2>
 
     <div id="login-view" class="view active">
-        <input type="text" id="nicknameInput" style="padding:10px; border-radius:5px;" placeholder="아이디 입력"><br>
+        <input type="text" id="nicknameInput" placeholder="아이디 입력"><br><br>
         <button class="btn-red" onclick="enterLobby()">게임 접속</button>
     </div>
 
     <div id="lobby-view" class="view">
         <h3 id="welcomeText"></h3>
-        <div class="code-box">내 관리 코드: <span id="myCodeDisplay" style="color: #f1c40f;">-</span></div><br>
-        <input type="text" id="oppCodeInput" style="padding:10px; width:250px;" placeholder="상대방 코드 입력 (봇전은 BOT 입력)"><br>
+        <div class="code-box">내 관리 코드:<br><span id="myCodeDisplay" style="color: #f1c40f;">-</span></div><br>
+        <input type="text" id="oppCodeInput" placeholder="상대방 코드 입력 (봇전은 BOT)"><br><br>
         <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled>게임 시작</button>
     </div>
 
@@ -66,9 +89,9 @@
         
         <div class="dice-container" id="diceContainer"></div>
         
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 15px;">
             <button id="rollBtn" class="btn-red" onclick="rollDice()">주사위 굴리기 (<span id="rollsLeftText">3</span>/3)</button>
-            <button id="surrenderBtn" class="btn-blue" style="background-color: #7f8c8d;" onclick="surrender()">기권하기</button>
+            <button id="surrenderBtn" class="btn-blue" style="background-color: #7f8c8d;" onclick="surrender()">기권</button>
         </div>
 
         <table id="scoreBoard">
@@ -87,7 +110,7 @@
                     <td id="opp-subtotal">0 / 63</td>
                 </tr>
                 <tr class="bonus-row" id="bonus-status-row">
-                    <td class="cat-name" style="line-height: 1.4;">보너스<br><span style="color: #7f8c8d; font-size: 11px; font-weight: normal;">(1~6 합 63점 이상 시 +35점)</span></td>
+                    <td class="cat-name" style="line-height: 1.4;">보너스<br><span style="color: #7f8c8d; font-size: 10px; font-weight: normal;">(상단 63점 이상 시 +35점)</span></td>
                     <td id="my-bonus-val">0</td>
                     <td id="opp-bonus-val">0</td>
                 </tr>
@@ -104,17 +127,17 @@
         
         <div class="guide-section">
             <h4><i class="fa-solid fa-book"></i> 점수 계산 방법</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div id="guide-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
-                    <b>• Aces~Sixes:</b> 해당 숫자의 합<br>
+                    <b>• Aces~Sixes:</b> 해당 숫자들의 합<br>
                     <b>• Choice:</b> 모든 주사위의 합<br>
-                    <b>• 4 of a Kind:</b> 동일 숫자 4개 이상 (전체 합)<br>
+                    <b>• 4 of a Kind:</b> 4개 이상 동일 (전체 합)<br>
                     <b>• Full House:</b> 3개 + 2개 동일 (전체 합)
                 </div>
                 <div>
                     <b>• S. Straight:</b> 4개 연속 숫자 (15점)<br>
                     <b>• L. Straight:</b> 5개 연속 숫자 (30점)<br>
-                    <b>• Yacht:</b> 동일 숫자 5개 (50점)<br>
+                    <b>• Yacht:</b> 5개 동일 숫자 (50점)<br>
                     <b style="color: #f1c40f;">⭐ 상단 합계 63점 이상 시 +35점!</b>
                 </div>
             </div>
@@ -122,11 +145,11 @@
     </div>
 
     <div id="gameover-view" class="view">
-        <h1 id="winnerText" style="font-size: 50px; color: #f1c40f;"></h1>
-        <p id="finalScoreMsg" style="font-size: 20px;"></p>
-        <button class="btn-green" id="rematchBtn" onclick="requestRematch()">다시하기 (진 사람이 선공)</button>
+        <h1 id="winnerText" style="font-size: 40px; color: #f1c40f;"></h1>
+        <p id="finalScoreMsg" style="font-size: 18px;"></p>
+        <button class="btn-green" id="rematchBtn" onclick="requestRematch()">다시하기 (진 사람 선공)</button><br>
         <button class="btn-red" onclick="location.reload()">종료하기</button>
-        <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7;"></div>
+        <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7; font-size: 14px;"></div>
     </div>
 
     <script>
@@ -155,15 +178,15 @@
             { id: 'choice', name: 'Choice', icon: 'fa-hand-pointer', max: '최대 30' },
             { id: '4ofakind', name: '4 of a Kind', icon: 'fa-clover', max: '최대 30' },
             { id: 'fullhouse', name: 'Full House', icon: 'fa-home', max: '최대 30' },
-            { id: 'sstraight', name: 'S. Straight', icon: 'fa-stairs', max: '15 고정' },
-            { id: 'lstraight', name: 'L. Straight', icon: 'fa-route', max: '30 고정' },
-            { id: 'yacht', name: 'Yacht', icon: 'fa-crown', max: '50 고정' }
+            { id: 'sstraight', name: 'S. Straight', icon: 'fa-stairs', max: '15 점' },
+            { id: 'lstraight', name: 'L. Straight', icon: 'fa-route', max: '30 점' },
+            { id: 'yacht', name: 'Yacht', icon: 'fa-crown', max: '50 점' }
         ];
 
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
 
-        // 🎆 폭죽 파티클 시스템
+        // 폭죽 파티클 시스템
         const canvas = document.getElementById('fireworksCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -176,18 +199,18 @@
             constructor(x, y, color) {
                 this.x = x; this.y = y; this.color = color;
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 6 + 4;
+                const speed = Math.random() * 5 + 3;
                 this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
-                this.alpha = 1; this.gravity = 0.12; this.friction = 0.98;
+                this.alpha = 1; this.gravity = 0.1; this.friction = 0.98;
             }
             update() {
                 this.vx *= this.friction; this.vy *= this.friction;
                 this.vy += this.gravity; this.x += this.vx; this.y += this.vy;
-                this.alpha -= 0.012;
+                this.alpha -= 0.015;
             }
             draw() {
                 ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, Math.random() * 3 + 2, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.arc(this.x, this.y, Math.random() * 3 + 1.5, 0, Math.PI * 2);
                 ctx.fill(); ctx.restore();
             }
         }
@@ -195,7 +218,7 @@
         function spawnFirework(x, y) {
             const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22'];
             const color = colors[Math.floor(Math.random() * colors.length)];
-            for (let i = 0; i < 60; i++) particles.push(new Particle(x, y, color));
+            for (let i = 0; i < 40; i++) particles.push(new Particle(x, y, color));
         }
 
         function animateFireworks() {
@@ -221,7 +244,7 @@
             if (counts.some(c => c === 5)) triggerYachtFireworks();
         }
 
-        // 게임 기본 로직
+        // 게임 제어 로직
         function enterLobby() {
             myNickname = document.getElementById('nicknameInput').value.trim() || "User";
             switchView('lobby-view'); document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
@@ -318,16 +341,13 @@
             else { checkGameEnd(); }
         }
 
-        // 🤖 철통 방어 봇 로직 (에러 원천 차단)
         function runBotLogic() {
             if (isMyTurn || checkGameEnd()) return;
             
             if (rollsLeft === 3) { 
-                botRollDice(); checkAndPlayYachtEffect(); 
-                setTimeout(runBotLogic, 1000); 
+                botRollDice(); checkAndPlayYachtEffect(); setTimeout(runBotLogic, 1000); 
             } else if (rollsLeft > 0) { 
-                botDecideHolds(); botRollDice(); checkAndPlayYachtEffect(); 
-                setTimeout(runBotLogic, 1000); 
+                botDecideHolds(); botRollDice(); checkAndPlayYachtEffect(); setTimeout(runBotLogic, 1000); 
             } else { 
                 botSelectScore(); 
             }
@@ -350,32 +370,17 @@
             try {
                 let p = getPotentialScores(); 
                 let bestCat = null; let bestScore = -1;
-                
-                // 1. 점수를 딸 수 있는 최적의 칸 찾기
                 for (let cat of categories) {
-                    if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { 
-                        bestScore = p[cat.id]; bestCat = cat.id; 
-                    }
+                    if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { bestScore = p[cat.id]; bestCat = cat.id; }
                 }
-                
-                // 2. 점수 딸 곳이 없으면 가치가 가장 낮은 족보부터 0점으로 버리기 (희생)
                 if (bestScore === 0 || bestCat === null) {
                     const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
-                    for (let catId of sacrificeOrder) { 
-                        if (oppScores[catId] === undefined) { bestCat = catId; break; } 
-                    }
+                    for (let catId of sacrificeOrder) { if (oppScores[catId] === undefined) { bestCat = catId; break; } }
                 }
-                
-                // 봇 점수 확정 및 턴 넘기기
                 if(bestCat !== null) oppScores[bestCat] = p[bestCat];
             } catch (e) {
-                console.error("Bot Error:", e);
-                // 혹시 모를 에러 발생 시 최후의 방어망: 무조건 빈 칸 하나 0점으로 채우고 턴 넘기기
-                for (let cat of categories) {
-                    if (oppScores[cat.id] === undefined) { oppScores[cat.id] = 0; break; }
-                }
+                for (let cat of categories) { if (oppScores[cat.id] === undefined) { oppScores[cat.id] = 0; break; } }
             }
-
             isMyTurn = true; resetTurnData(); updateUI(); checkGameEnd();
         }
 
@@ -406,7 +411,6 @@
                 d.className = 'dice' + (isHeld[i] ? ' held' : '');
             }
 
-            // 💡 텍스트가 확실하게 업데이트 되도록 분기 처리
             const turnElement = document.getElementById('turnText');
             if(isMyTurn) {
                 turnElement.innerText = "🔥 내 차례입니다!";
