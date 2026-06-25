@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - Global Edition (UI Layout Fix)</title>
+    <title>Yacht Dice - Global Edition (UI Fix)</title>
     
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -18,9 +18,8 @@
 
         h2 { font-size: 48px; margin-top: 30px; margin-bottom: 20px; text-shadow: 2px 2px 5px rgba(0,0,0,0.4); }
 
-        /* 💡 언어 드롭다운 디자인 (버튼과 동일한 너비로 통일) */
         .lang-selector { 
-            display: block; margin: 15px auto 0 auto; width: 250px; max-width: 100%; 
+            display: block; margin: 15px auto 0 auto; width: 500px; max-width: 100%; 
             background-color: #34495e; color: white; border: 1px solid #bdc3c7; 
             border-radius: 8px; padding: 12px; font-size: 15px; cursor: pointer; 
             outline: none; transition: 0.2s; 
@@ -64,13 +63,15 @@
         .guide-section { width: 100%; max-width: 450px; margin: 20px auto; text-align: left; background-color: #2c3e50; padding: 15px; border-radius: 10px; font-size: 12px; line-height: 1.5; color: #bdc3c7; }
         .guide-section h4 { color: #f1c40f; margin-top: 0; margin-bottom: 10px; }
         
-        /* 💡 입력창 너비도 300px로 확장 */
-        input { max-width: 100%; width: 300px; padding: 12px; border-radius: 8px; border: none; text-align: center; font-size: 16px; margin-bottom: 10px; }
+        input { max-width: 100%; width: 500px; padding: 12px; border-radius: 8px; border: none; text-align: center; font-size: 16px; margin-bottom: 10px; }
         .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0; font-family: monospace; word-break: break-all; max-width: 100%; cursor: pointer; transition: 0.2s; border: 2px dashed transparent; }
         .code-box:hover { background-color: #3b536b; border-color: #bdc3c7; }
         .code-box:active { background-color: #2c3e50; transform: scale(0.98); }
         .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-weight: bold; }
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
+
+        /* 💡 버튼 중앙 정렬을 위한 CSS 추가 */
+        #actionButtons { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
 
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(26, 37, 47, 0.4); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; justify-content: flex-end; padding-bottom: 30px; }
         .overlay.show { display: flex; }
@@ -79,6 +80,10 @@
         @media (max-width: 400px) {
             h2 { font-size: 44px; margin-top: 40px; margin-bottom: 15px; line-height: 1.1; } 
             .dice { width: 45px; height: 45px; font-size: 24px; border-radius: 8px; } .dice-container { gap: 8px; } button { font-size: 14px; padding: 10px 15px; } .cat-name { font-size: 11px; } .score-cell { font-size: 14px; } .max-score { display: block; float: none; margin-top: 2px; font-size: 10px; } .guide-section { font-size: 11px; } #guide-grid { grid-template-columns: 1fr !important; gap: 5px !important; } 
+            
+            /* 📱 모바일에서도 버튼 꽉 차게 */
+            #actionButtons button { margin: 0; flex: 1; }
+            #surrenderBtn { flex: 0.4; } 
         }
     </style>
 </head>
@@ -89,13 +94,12 @@
     <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2>
 
     <div id="login-view" class="view active">
-        <br><p data-i18n="nicknameGuide" style="color: #bdc3c7; font-size: 15px; margin-bottom: 15px; font-weight: bold;">
+        <p data-i18n="nicknameGuide" style="color: #bdc3c7; font-size: 15px; margin-bottom: 15px; font-weight: bold;">
             상대방에게 보여질 닉네임을 입력해 주세요.
-        </p><br>
+        </p>
         
         <input type="text" id="nicknameInput" data-i18n="idPlaceholder" placeholder="아이디 입력 (빈칸 시 랜덤)"><br>
-        
-        <button class="btn-red" onclick="enterLobby()" data-i18n="loginBtn" style="width: 300px; max-width: 100%; margin: 5px 0;">게임 접속</button>
+        <button class="btn-red" onclick="enterLobby()" data-i18n="loginBtn" style="width: 500px; max-width: 100%; margin: 5px 0;">게임 접속</button>
 
         <select id="langSelect" class="lang-selector" onchange="changeLanguage(this.value)">
             <option value="ko">🇰🇷 한국어 (Korean)</option>
@@ -107,10 +111,10 @@
     </div>
 
     <div id="lobby-view" class="view">
-        <h3 id="welcomeText"></h3>
+        <h3 id="welcomeText" style="margin-top: 5px; margin-bottom: 10px;"></h3>
         <div class="code-box" onclick="copyMyCode()" title="Copy">
             <span data-i18n="myCodeTxt">내 관리 코드:</span><br>
-            <span id="myCodeDisplay" style="color: #f1c40f; font-size: 16px;">Loading...</span>
+            <span id="myCodeDisplay" style="color: #f1c40f; font-size: 18px;">Loading...</span>
             <div id="copyHint" class="copy-hint" data-i18n="copyHintTxt"><i class="fa-regular fa-copy"></i> 터치해서 복사하기</div>
         </div><br>
         <input type="text" id="oppCodeInput" data-i18n="oppPlaceholder" placeholder="상대방 코드 입력 (빈칸 시 봇전)"><br>
@@ -122,7 +126,7 @@
         
         <div class="dice-container" id="diceContainer"></div>
         
-        <div style="margin-bottom: 15px;" id="actionButtons">
+        <div id="actionButtons">
             <button id="rollBtn" class="btn-red" onclick="rollDice()"><span data-i18n="rollBtnTxt">주사위 굴리기</span> (<span id="rollsLeftText">3</span>/3)</button>
             <button id="surrenderBtn" class="btn-blue" style="background-color: #7f8c8d;" onclick="surrender()" data-i18n="surrenderBtnTxt">기권</button>
         </div>
@@ -184,7 +188,7 @@
             <button class="btn-purple" id="captureBtn" onclick="captureScoreboard()" style="width: 100%; margin-bottom: 10px;">
                 <i class="fa-solid fa-camera"></i> <span data-i18n="captureBtnTxt">점수판 캡쳐</span>
             </button>
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; gap: 10px;">
                 <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px;" data-i18n="rematchBtnTxt">다시하기</button>
                 <button class="btn-red" onclick="location.reload()" style="flex: 1; font-size: 14px;" data-i18n="exitBtnTxt">종료</button>
             </div>
@@ -503,7 +507,7 @@
         function startGame() {
             switchView('game-view');
             document.getElementById('gameover-overlay').classList.remove('show');
-            document.getElementById('actionButtons').style.display = 'block'; 
+            document.getElementById('actionButtons').style.display = 'flex'; 
             document.getElementById('p1Name').innerText = t.myTxtStr; 
             document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
             myScores = {}; oppScores = {}; 
