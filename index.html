@@ -2,14 +2,16 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Yacht Dice - 솔로 & 멀티플레이</title>
+    <title>Yacht Dice - 솔로 & 멀티플레이 (알파다이스 수리 완료)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #1a252f; color: white; margin: 0; padding: 20px; }
+        body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #1a252f; color: white; margin: 0; padding: 20px; overflow-x: hidden; }
         .view { display: none; }
         .active { display: block; }
         
+        #fireworksCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+
         button { padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.3s; margin: 5px; }
         .btn-red { background-color: #e74c3c; color: white; }
         .btn-red:hover { background-color: #c0392b; }
@@ -18,12 +20,7 @@
         button:disabled { background-color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
 
         .dice-container { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
-        .dice { 
-            width: 60px; height: 60px; background-color: #ecf0f1; color: #2c3e50; 
-            font-size: 32px; font-weight: bold; border-radius: 12px; 
-            display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; 
-        }
+        .dice { width: 60px; height: 60px; background-color: #ecf0f1; color: #2c3e50; font-size: 32px; font-weight: bold; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; }
         .dice.held { background-color: #f1c40f; color: #000; transform: translateY(5px); box-shadow: none; }
         
         table { margin: 20px auto; border-collapse: collapse; width: 450px; background-color: #fff; color: #333; border-radius: 10px; overflow: hidden; }
@@ -47,6 +44,8 @@
     </style>
 </head>
 <body>
+
+    <canvas id="fireworksCanvas"></canvas>
 
     <h2>🎲 YACHT DICE ONLINE 🎲</h2>
 
@@ -88,10 +87,7 @@
                     <td id="opp-subtotal">0 / 63</td>
                 </tr>
                 <tr class="bonus-row" id="bonus-status-row">
-                    <td class="cat-name" style="line-height: 1.4;">
-                        보너스<br>
-                        <span style="color: #7f8c8d; font-size: 11px; font-weight: normal;">(1~6 항목 합 63점 이상 시 +35점)</span>
-                    </td>
+                    <td class="cat-name" style="line-height: 1.4;">보너스<br><span style="color: #7f8c8d; font-size: 11px; font-weight: normal;">(1~6 합 63점 이상 시 +35점)</span></td>
                     <td id="my-bonus-val">0</td>
                     <td id="opp-bonus-val">0</td>
                 </tr>
@@ -105,7 +101,7 @@
                 </tr>
             </tfoot>
         </table>
-
+        
         <div class="guide-section">
             <h4><i class="fa-solid fa-book"></i> 점수 계산 방법</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -136,7 +132,7 @@
     <script>
         let myNickname = "", oppNickname = "";
         let peer = null, conn = null, isHost = false;
-        let isBotMode = false; // 봇전 활성화 플래그
+        let isBotMode = false; 
         
         let diceValues = [1, 1, 1, 1, 1];
         let isHeld = [false, false, false, false, false];
@@ -167,10 +163,68 @@
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
 
+        // 🎆 폭죽 파티클 시스템
+        const canvas = document.getElementById('fireworksCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationId = null;
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 4;
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+                this.alpha = 1; this.gravity = 0.12; this.friction = 0.98;
+            }
+            update() {
+                this.vx *= this.friction; this.vy *= this.friction;
+                this.vy += this.gravity; this.x += this.vx; this.y += this.vy;
+                this.alpha -= 0.012;
+            }
+            draw() {
+                ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x, this.y, Math.random() * 3 + 2, 0, Math.PI * 2);
+                ctx.fill(); ctx.restore();
+            }
+        }
+
+        function spawnFirework(x, y) {
+            const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 60; i++) particles.push(new Particle(x, y, color));
+        }
+
+        function animateFireworks() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = particles.filter(p => p.alpha > 0);
+            particles.forEach(p => { p.update(); p.draw(); });
+            if (particles.length > 0) animationId = requestAnimationFrame(animateFireworks);
+            else { cancelAnimationFrame(animationId); animationId = null; }
+        }
+
+        function triggerYachtFireworks() {
+            let count = 0;
+            const interval = setInterval(() => {
+                spawnFirework(window.innerWidth * 0.15, window.innerHeight * 0.3 + Math.random() * 100);
+                spawnFirework(window.innerWidth * 0.85, window.innerHeight * 0.3 + Math.random() * 100);
+                if (!animationId) animateFireworks();
+                if (++count >= 4) clearInterval(interval);
+            }, 300);
+        }
+
+        function checkAndPlayYachtEffect() {
+            let counts = [0,0,0,0,0,0,0]; diceValues.forEach(d => counts[d]++);
+            if (counts.some(c => c === 5)) triggerYachtFireworks();
+        }
+
+        // 게임 기본 로직
         function enterLobby() {
             myNickname = document.getElementById('nicknameInput').value.trim() || "User";
-            switchView('lobby-view');
-            document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
+            switchView('lobby-view'); document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
             peer = new Peer();
             peer.on('open', id => { document.getElementById('myCodeDisplay').innerText = id; document.getElementById('connectBtn').disabled = false; });
             peer.on('connection', incoming => { if(conn) return; conn = incoming; isHost = true; setupConnection(); });
@@ -180,19 +234,13 @@
             const tid = document.getElementById('oppCodeInput').value.trim();
             if(!tid) return;
 
-            // 💡 봇전 진입 로직
             if(tid.toUpperCase() === 'BOT') {
-                isBotMode = true;
-                oppNickname = "🤖 알파다이스 (Bot)";
-                isHost = true; // 솔로 플레이 시 내가 방장 취급
-                isMyTurn = true; // 무조건 내가 먼저 시작
-                startGame();
-                return;
+                isBotMode = true; oppNickname = "🤖 알파다이스";
+                isHost = true; isMyTurn = true;
+                startGame(); return;
             }
 
-            // 일반 멀티플레이 연결
-            conn = peer.connect(tid);
-            isHost = false;
+            conn = peer.connect(tid); isHost = false;
             conn.on('open', () => conn.send({ type: 'JOIN', nickname: myNickname }));
             setupConnection();
         }
@@ -202,7 +250,7 @@
                 switch(data.type) {
                     case 'JOIN': oppNickname = data.nickname; isMyTurn = true; conn.send({ type: 'ACCEPT', nickname: myNickname }); startGame(); break;
                     case 'ACCEPT': oppNickname = data.nickname; isMyTurn = false; startGame(); break;
-                    case 'SYNC_ROLL': diceValues = data.diceValues; rollsLeft = data.rollsLeft; updateUI(); break;
+                    case 'SYNC_ROLL': diceValues = data.diceValues; rollsLeft = data.rollsLeft; updateUI(); checkAndPlayYachtEffect(); break;
                     case 'SYNC_HOLD': isHeld[data.index] = data.isHeld; updateUI(); break;
                     case 'SYNC_SCORE': oppScores[data.category] = data.score; if(!checkGameEnd()) { isMyTurn = true; resetTurnData(); updateUI(); } break;
                     case 'SURRENDER': handleOpponentSurrender(); break;
@@ -210,20 +258,17 @@
                     case 'REMATCH_START': resetFullGame(data.starterNickname); break;
                 }
             });
-            conn.on('close', () => { alert("상대방의 연결이 종료되었습니다."); location.reload(); });
+            conn.on('close', () => { alert("연결이 종료되었습니다."); location.reload(); });
         }
 
         function startGame() {
             switchView('game-view');
-            document.getElementById('p1Name').innerText = myNickname;
-            document.getElementById('p2Name').innerText = oppNickname;
-            myScores = {}; oppScores = {};
-            initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
+            document.getElementById('p1Name').innerText = myNickname; document.getElementById('p2Name').innerText = oppNickname;
+            myScores = {}; oppScores = {}; initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
         }
 
         function initDiceUI() {
-            const container = document.getElementById('diceContainer');
-            container.innerHTML = '';
+            const container = document.getElementById('diceContainer'); container.innerHTML = '';
             for(let i=0; i<5; i++) {
                 let d = document.createElement('div'); d.className = 'dice'; d.id = 'die-'+i; d.innerText = '🎲';
                 d.onclick = () => toggleHold(i); container.appendChild(d);
@@ -231,20 +276,12 @@
         }
 
         function initScoreBoard() {
-            const upperBody = document.getElementById('upperScoreBody');
-            const lowerBody = document.getElementById('lowerScoreBody');
+            const upperBody = document.getElementById('upperScoreBody'); const lowerBody = document.getElementById('lowerScoreBody');
             upperBody.innerHTML = ''; lowerBody.innerHTML = '';
-
-            const createRow = (cat) => `
-                <tr>
-                    <td class="cat-name">
-                        <i class="fa-solid ${cat.icon}"></i> ${cat.name}
-                        <span class="max-score">${cat.max}</span>
-                    </td>
-                    <td id="my-${cat.id}" class="score-cell" onclick="selectScore('${cat.id}')"></td>
-                    <td id="opp-${cat.id}" class="score-cell"></td>
-                </tr>`;
-
+            const createRow = (cat) => `<tr>
+                <td class="cat-name"><i class="fa-solid ${cat.icon}"></i> ${cat.name} <span class="max-score">${cat.max}</span></td>
+                <td id="my-${cat.id}" class="score-cell" onclick="selectScore('${cat.id}')"></td>
+                <td id="opp-${cat.id}" class="score-cell"></td></tr>`;
             upperCategories.forEach(cat => upperBody.innerHTML += createRow(cat));
             lowerCategories.forEach(cat => lowerBody.innerHTML += createRow(cat));
         }
@@ -252,7 +289,7 @@
         function rollDice() {
             if(!isMyTurn || rollsLeft <= 0) return;
             for(let i=0; i<5; i++) if(!isHeld[i]) diceValues[i] = Math.floor(Math.random()*6)+1;
-            rollsLeft--; updateUI();
+            rollsLeft--; updateUI(); checkAndPlayYachtEffect();
             if(conn && !isBotMode) conn.send({ type: 'SYNC_ROLL', diceValues, rollsLeft });
         }
 
@@ -263,118 +300,94 @@
         }
 
         function surrender() {
-            if(!confirm("정말 기권하시겠습니까? 상대방의 승리로 처리됩니다.")) return;
-            if(isBotMode) {
-                showVictoryScreen(oppNickname);
-                return;
-            }
+            if(!confirm("정말 기권하시겠습니까?")) return;
+            if(isBotMode) { showVictoryScreen(oppNickname); return; }
             if(conn) conn.send({ type: 'SURRENDER' });
             showVictoryScreen(oppNickname); 
         }
 
-        function handleOpponentSurrender() {
-            alert("상대방이 기권했습니다! 당신의 승리입니다.");
-            showVictoryScreen(myNickname);
-        }
+        function handleOpponentSurrender() { alert("상대방이 기권했습니다!"); showVictoryScreen(myNickname); }
 
         function selectScore(catId) {
             if(!isMyTurn || rollsLeft === 3 || myScores[catId] !== undefined) return;
-            let p = getPotentialScores();
-            myScores[catId] = p[catId];
+            let p = getPotentialScores(); myScores[catId] = p[catId];
             if(conn && !isBotMode) conn.send({ type: 'SYNC_SCORE', category: catId, score: myScores[catId] });
             
             isMyTurn = false; resetTurnData(); updateUI();
-            
-            // 💡 봇전일 경우, 내 턴이 끝나면 봇의 턴을 1초 뒤 시작
-            if (isBotMode && !checkGameEnd()) {
-                setTimeout(runBotLogic, 1000);
-            } else {
-                checkGameEnd();
-            }
+            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1000); } 
+            else { checkGameEnd(); }
         }
 
-        // ==========================================
-        // 🤖 [Bot AI Logic] 인공지능 턴 처리 루틴
-        // ==========================================
+        // 🤖 철통 방어 봇 로직 (에러 원천 차단)
         function runBotLogic() {
-            if (isMyTurn || Object.keys(oppScores).length === 12) return;
-
-            if (rollsLeft === 3) {
-                // 첫 번째 굴리기
-                botRollDice();
-                setTimeout(runBotLogic, 1000); // 1초 생각하고 다음 행동
-            } else if (rollsLeft > 0) {
-                // 어떤 주사위를 킵할지 결정하고 굴리기
-                botDecideHolds();
-                botRollDice();
-                setTimeout(runBotLogic, 1000);
-            } else {
-                // 3번 다 굴렸으면 점수 확정
-                botSelectScore();
-            }
-        }
-
-        function botRollDice() {
-            for(let i=0; i<5; i++) if(!isHeld[i]) diceValues[i] = Math.floor(Math.random()*6)+1;
-            rollsLeft--; updateUI();
-        }
-
-        function botDecideHolds() {
-            // AI 기본 원리: 가장 많이 나온 숫자(Frequency)를 찾아서 킵한다.
-            let counts = [0,0,0,0,0,0,0];
-            diceValues.forEach(d => counts[d]++);
-            let maxFreq = Math.max(...counts.slice(1));
-            let targetNum = counts.lastIndexOf(maxFreq); // 빈도가 같은 경우 높은 숫자를 우선
+            if (isMyTurn || checkGameEnd()) return;
             
-            for(let i=0; i<5; i++) {
-                if (diceValues[i] === targetNum) isHeld[i] = true;
+            if (rollsLeft === 3) { 
+                botRollDice(); checkAndPlayYachtEffect(); 
+                setTimeout(runBotLogic, 1000); 
+            } else if (rollsLeft > 0) { 
+                botDecideHolds(); botRollDice(); checkAndPlayYachtEffect(); 
+                setTimeout(runBotLogic, 1000); 
+            } else { 
+                botSelectScore(); 
             }
+        }
+
+        function botRollDice() { 
+            for(let i=0; i<5; i++) { if(!isHeld[i]) diceValues[i] = Math.floor(Math.random()*6)+1; } 
+            rollsLeft--; updateUI(); 
+        }
+        
+        function botDecideHolds() {
+            let counts = [0,0,0,0,0,0,0]; diceValues.forEach(d => counts[d]++);
+            let maxFreq = Math.max(...counts.slice(1)); 
+            let targetNum = counts.lastIndexOf(maxFreq);
+            for(let i=0; i<5; i++) { if (diceValues[i] === targetNum) isHeld[i] = true; }
             updateUI();
         }
 
         function botSelectScore() {
-            let p = getPotentialScores();
-            let bestCat = null;
-            let bestScore = -1;
-            
-            // 1. 얻을 수 있는 점수 중 가장 높은 곳을 찾는다 (안 채워진 곳 중)
-            for (let cat of categories) {
-                if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) {
-                    bestScore = p[cat.id];
-                    bestCat = cat.id;
+            try {
+                let p = getPotentialScores(); 
+                let bestCat = null; let bestScore = -1;
+                
+                // 1. 점수를 딸 수 있는 최적의 칸 찾기
+                for (let cat of categories) {
+                    if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { 
+                        bestScore = p[cat.id]; bestCat = cat.id; 
+                    }
+                }
+                
+                // 2. 점수 딸 곳이 없으면 가치가 가장 낮은 족보부터 0점으로 버리기 (희생)
+                if (bestScore === 0 || bestCat === null) {
+                    const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
+                    for (let catId of sacrificeOrder) { 
+                        if (oppScores[catId] === undefined) { bestCat = catId; break; } 
+                    }
+                }
+                
+                // 봇 점수 확정 및 턴 넘기기
+                if(bestCat !== null) oppScores[bestCat] = p[bestCat];
+            } catch (e) {
+                console.error("Bot Error:", e);
+                // 혹시 모를 에러 발생 시 최후의 방어망: 무조건 빈 칸 하나 0점으로 채우고 턴 넘기기
+                for (let cat of categories) {
+                    if (oppScores[cat.id] === undefined) { oppScores[cat.id] = 0; break; }
                 }
             }
-            
-            // 2. 만약 얻을 점수가 하나도 없다면 (전부 0점이라면) 가치가 낮은 곳부터 버린다(희생)
-            if (bestScore === 0) {
-                const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
-                for (let catId of sacrificeOrder) {
-                    if (oppScores[catId] === undefined) { bestCat = catId; break; }
-                }
-            }
-            
-            // 봇의 점수 확정
-            oppScores[bestCat] = p[bestCat];
-            isMyTurn = true; 
-            resetTurnData(); 
-            updateUI();
-            checkGameEnd();
-        }
-        // ==========================================
 
+            isMyTurn = true; resetTurnData(); updateUI(); checkGameEnd();
+        }
 
         function getPotentialScores() {
-            let counts = [0,0,0,0,0,0,0]; let sum = 0;
-            diceValues.forEach(d => { counts[d]++; sum += d; });
+            let counts = [0,0,0,0,0,0,0]; let sum = 0; diceValues.forEach(d => { counts[d]++; sum += d; });
             let p = {};
-            p['aces'] = counts[1]*1; p['twos'] = counts[2]*2; p['threes'] = counts[3]*3;
-            p['fours'] = counts[4]*4; p['fives'] = counts[5]*5; p['sixes'] = counts[6]*6;
+            p['aces'] = counts[1]*1; p['twos'] = counts[2]*2; p['threes'] = counts[3]*3; p['fours'] = counts[4]*4; p['fives'] = counts[5]*5; p['sixes'] = counts[6]*6;
             p['choice'] = sum;
             p['4ofakind'] = counts.some(c => c >= 4) ? sum : 0;
             p['fullhouse'] = (counts.some(c => c === 3) && counts.some(c => c === 2)) || counts.some(c => c === 5) ? sum : 0;
             let s = counts.slice(1).map(c => c>0?1:0).join('');
-            p['sstraight'] = s.includes('1111') ? 15 : 0;
-            p['lstraight'] = s.includes('11111') ? 30 : 0;
+            p['sstraight'] = s.includes('1111') ? 15 : 0; p['lstraight'] = s.includes('11111') ? 30 : 0;
             p['yacht'] = counts.some(c => c === 5) ? 50 : 0;
             return p;
         }
@@ -393,13 +406,14 @@
                 d.className = 'dice' + (isHeld[i] ? ' held' : '');
             }
 
-            // 💡 봇 턴일 때 메시지 변경
+            // 💡 텍스트가 확실하게 업데이트 되도록 분기 처리
+            const turnElement = document.getElementById('turnText');
             if(isMyTurn) {
-                document.getElementById('turnText').innerText = "🔥 내 차례입니다!";
-                document.getElementById('turnText').style.color = "#2ecc71";
+                turnElement.innerText = "🔥 내 차례입니다!";
+                turnElement.style.color = "#2ecc71";
             } else {
-                document.getElementById('turnText').innerText = isBotMode ? "🤖 알파다이스가 생각 중..." : `⌛ ${oppNickname}님의 차례...`;
-                document.getElementById('turnText').style.color = "#e74c3c";
+                turnElement.innerText = isBotMode ? "🤖 알파다이스가 생각 중..." : `⌛ ${oppNickname}님의 차례...`;
+                turnElement.style.color = "#e74c3c";
             }
             
             document.getElementById('rollBtn').disabled = !isMyTurn || rollsLeft <= 0;
@@ -430,33 +444,25 @@
         function checkGameEnd() {
             if(Object.keys(myScores).length === 12 && Object.keys(oppScores).length === 12) {
                 let my = calculateScores(myScores).total, opp = calculateScores(oppScores).total;
-                showVictoryScreen(my > opp ? myNickname : (opp > my ? oppNickname : "무승부"));
-                return true;
+                showVictoryScreen(my > opp ? myNickname : (opp > my ? oppNickname : "무승부")); return true;
             }
             return false;
         }
 
         function showVictoryScreen(winner) {
-            switchView('gameover-view');
-            lastWinner = winner; 
+            switchView('gameover-view'); lastWinner = winner; 
             document.getElementById('winnerText').innerText = winner === "무승부" ? "🤝 무승부!" : `🎉 ${winner} 승리!`;
             document.getElementById('finalScoreMsg').innerText = `나: ${calculateScores(myScores).total}점 | 상대: ${calculateScores(oppScores).total}점`;
             amIWantRematch = false; isOppWantRematch = false;
-            document.getElementById('rematchStatus').innerText = "";
-            document.getElementById('rematchBtn').disabled = false;
+            document.getElementById('rematchStatus').innerText = ""; document.getElementById('rematchBtn').disabled = false;
         }
 
         function requestRematch() {
-            // 💡 봇전일 경우 봇은 무조건 재시합을 즉시 수락합니다.
             if(isBotMode) {
                 let starter = (lastWinner === myNickname) ? oppNickname : myNickname;
-                resetFullGame(starter);
-                if(!isMyTurn) setTimeout(runBotLogic, 1000); // 봇이 선공이면 봇 로직 실행
-                return;
+                resetFullGame(starter); if(!isMyTurn) setTimeout(runBotLogic, 1000); return;
             }
-
-            amIWantRematch = true;
-            document.getElementById('rematchBtn').disabled = true;
+            amIWantRematch = true; document.getElementById('rematchBtn').disabled = true;
             if(conn) conn.send({ type: 'REMATCH_PUSH' });
             handleRematchLogic();
         }
@@ -464,20 +470,11 @@
         function handleRematchLogic() {
             if(amIWantRematch && isOppWantRematch) {
                 let starter = (lastWinner === myNickname) ? oppNickname : myNickname;
-                if(isHost) {
-                    if(conn) conn.send({ type: 'REMATCH_START', starterNickname: starter });
-                    resetFullGame(starter);
-                }
-            } else {
-                document.getElementById('rematchStatus').innerText = "상대방의 수락을 기다리고 있습니다...";
-            }
+                if(isHost) { if(conn) conn.send({ type: 'REMATCH_START', starterNickname: starter }); resetFullGame(starter); }
+            } else { document.getElementById('rematchStatus').innerText = "상대방의 수락을 기다리고 있습니다..."; }
         }
 
-        function resetFullGame(starterNickname) {
-            isMyTurn = (starterNickname === myNickname);
-            startGame();
-        }
-
+        function resetFullGame(starterNickname) { isMyTurn = (starterNickname === myNickname); startGame(); }
         function resetTurnData() { diceValues = [1,1,1,1,1]; isHeld = [false,false,false,false,false]; rollsLeft = 3; }
         function switchView(id) { document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         window.addEventListener('beforeunload', () => { if(conn && conn.open) conn.close(); });
