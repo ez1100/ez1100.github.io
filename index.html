@@ -1,1 +1,381 @@
-<h1>Hello World!</h1>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Yacht Dice - UI 개선 버전</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #1a252f; color: white; margin: 0; padding: 20px; }
+        .view { display: none; }
+        .active { display: block; }
+        
+        button { padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.3s; margin: 5px; }
+        .btn-red { background-color: #e74c3c; color: white; }
+        .btn-red:hover { background-color: #c0392b; }
+        .btn-green { background-color: #2ecc71; color: white; }
+        .btn-blue { background-color: #3498db; color: white; }
+        button:disabled { background-color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
+
+        .dice-container { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+        .dice { 
+            width: 60px; height: 60px; background-color: #ecf0f1; color: #2c3e50; 
+            font-size: 32px; font-weight: bold; border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; 
+        }
+        .dice.held { background-color: #f1c40f; color: #000; transform: translateY(5px); box-shadow: none; }
+        
+        table { margin: 20px auto; border-collapse: collapse; width: 450px; background-color: #fff; color: #333; border-radius: 10px; overflow: hidden; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #2c3e50; color: white; font-size: 14px; }
+        .cat-name { text-align: left; background-color: #f8f9fa; font-weight: bold; font-size: 13px; width: 180px; position: relative; }
+        .cat-name i { margin-right: 8px; color: #555; }
+        .max-score { color: #95a5a6; font-size: 11px; float: right; font-weight: normal; line-height: 1.5; }
+        
+        .score-cell { font-weight: bold; width: 80px; font-size: 16px; }
+        .score-cell.potential { color: #2ecc71; background-color: #f0fff0; cursor: pointer; }
+        .score-cell.filled { color: #2c3e50; background-color: #f8f9fa; }
+
+        .bonus-row { background-color: #ebf5fb; font-size: 13px; font-weight: bold; }
+        .bonus-achieved { background-color: #f1c40f !important; color: #000 !important; font-weight: bold; }
+
+        .guide-section { max-width: 600px; margin: 40px auto; text-align: left; background-color: #2c3e50; padding: 20px; border-radius: 10px; font-size: 13px; line-height: 1.6; color: #bdc3c7; }
+        .guide-section h4 { color: #f1c40f; margin-top: 0; }
+        .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 20px 0; font-family: monospace; }
+        .status-msg { font-size: 20px; font-weight: bold; margin: 15px 0; color: #f1c40f; }
+    </style>
+</head>
+<body>
+
+    <h2>🎲 YACHT DICE ONLINE 🎲</h2>
+
+    <div id="login-view" class="view active">
+        <input type="text" id="nicknameInput" style="padding:10px; border-radius:5px;" placeholder="아이디 입력"><br>
+        <button class="btn-red" onclick="enterLobby()">게임 접속</button>
+    </div>
+
+    <div id="lobby-view" class="view">
+        <h3 id="welcomeText"></h3>
+        <div class="code-box">내 관리 코드: <span id="myCodeDisplay" style="color: #f1c40f;">-</span></div><br>
+        <input type="text" id="oppCodeInput" style="padding:10px; width:250px;" placeholder="상대방 코드 입력"><br>
+        <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled>상대방과 연결</button>
+    </div>
+
+    <div id="game-view" class="view">
+        <div id="turnText" class="status-msg">대기 중...</div>
+        
+        <div class="dice-container" id="diceContainer"></div>
+        
+        <div style="margin-bottom: 20px;">
+            <button id="rollBtn" class="btn-red" onclick="rollDice()">주사위 굴리기 (<span id="rollsLeftText">3</span>/3)</button>
+            <button id="surrenderBtn" class="btn-blue" style="background-color: #7f8c8d;" onclick="surrender()">기권하기</button>
+        </div>
+
+        <table id="scoreBoard">
+            <thead>
+                <tr>
+                    <th>Categories</th>
+                    <th id="p1Name">나</th>
+                    <th id="p2Name">상대</th>
+                </tr>
+            </thead>
+            <tbody id="upperScoreBody"></tbody>
+            
+            <tbody id="bonusBody">
+                <tr class="bonus-row">
+                    <td class="cat-name">상단 합계</td>
+                    <td id="my-subtotal">0 / 63</td>
+                    <td id="opp-subtotal">0 / 63</td>
+                </tr>
+                <tr class="bonus-row" id="bonus-status-row">
+                    <td class="cat-name" style="line-height: 1.4;">
+                        보너스<br>
+                        <span style="color: #7f8c8d; font-size: 11px; font-weight: normal;">(1~6 항목 합 63점 이상 시 +35점)</span>
+                    </td>
+                    <td id="my-bonus-val">0</td>
+                    <td id="opp-bonus-val">0</td>
+                </tr>
+            </tbody>
+
+            <tbody id="lowerScoreBody"></tbody>
+            
+            <tfoot>
+                <tr style="background-color: #2c3e50; color: white;">
+                    <th>TOTAL</th>
+                    <th id="my-total">0</th>
+                    <th id="opp-total">0</th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="guide-section">
+            <h4><i class="fa-solid fa-book"></i> 점수 계산 방법</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <b>• Aces~Sixes:</b> 해당 숫자의 합<br>
+                    <b>• Choice:</b> 모든 주사위의 합<br>
+                    <b>• 4 of a Kind:</b> 동일 숫자 4개 이상 (전체 합)<br>
+                    <b>• Full House:</b> 3개 + 2개 동일 (전체 합)
+                </div>
+                <div>
+                    <b>• S. Straight:</b> 4개 연속 숫자 (15점)<br>
+                    <b>• L. Straight:</b> 5개 연속 숫자 (30점)<br>
+                    <b>• Yacht:</b> 동일 숫자 5개 (50점)<br>
+                    <b style="color: #f1c40f;">⭐ 상단 합계 63점 이상 시 +35점!</b>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameover-view" class="view">
+        <h1 id="winnerText" style="font-size: 50px; color: #f1c40f;"></h1>
+        <p id="finalScoreMsg" style="font-size: 20px;"></p>
+        <button class="btn-green" id="rematchBtn" onclick="requestRematch()">다시하기 (진 사람이 선공)</button>
+        <button class="btn-red" onclick="location.reload()">종료하기</button>
+        <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7;"></div>
+    </div>
+
+    <script>
+        let myNickname = "", oppNickname = "";
+        let peer = null, conn = null, isHost = false;
+        
+        let diceValues = [1, 1, 1, 1, 1];
+        let isHeld = [false, false, false, false, false];
+        let rollsLeft = 3;
+        let isMyTurn = false;
+        let lastWinner = null; 
+
+        let amIWantRematch = false, isOppWantRematch = false;
+
+        // 상단 카테고리와 하단 카테고리 분리 (최대 점수 텍스트 추가)
+        const upperCategories = [
+            { id: 'aces', name: 'Aces', icon: 'fa-dice-one', max: '최대 5' },
+            { id: 'twos', name: 'Deuces', icon: 'fa-dice-two', max: '최대 10' },
+            { id: 'threes', name: 'Threes', icon: 'fa-dice-three', max: '최대 15' },
+            { id: 'fours', name: 'Fours', icon: 'fa-dice-four', max: '최대 20' },
+            { id: 'fives', name: 'Fives', icon: 'fa-dice-five', max: '최대 25' },
+            { id: 'sixes', name: 'Sixes', icon: 'fa-dice-six', max: '최대 30' }
+        ];
+
+        const lowerCategories = [
+            { id: 'choice', name: 'Choice', icon: 'fa-hand-pointer', max: '최대 30' },
+            { id: '4ofakind', name: '4 of a Kind', icon: 'fa-clover', max: '최대 30' },
+            { id: 'fullhouse', name: 'Full House', icon: 'fa-home', max: '최대 30' },
+            { id: 'sstraight', name: 'S. Straight', icon: 'fa-stairs', max: '15 고정' },
+            { id: 'lstraight', name: 'L. Straight', icon: 'fa-route', max: '30 고정' },
+            { id: 'yacht', name: 'Yacht', icon: 'fa-crown', max: '50 고정' }
+        ];
+
+        const categories = [...upperCategories, ...lowerCategories];
+        let myScores = {}, oppScores = {};
+
+        function enterLobby() {
+            myNickname = document.getElementById('nicknameInput').value.trim() || "User";
+            switchView('lobby-view');
+            document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
+            peer = new Peer();
+            peer.on('open', id => { document.getElementById('myCodeDisplay').innerText = id; document.getElementById('connectBtn').disabled = false; });
+            peer.on('connection', incoming => { if(conn) return; conn = incoming; isHost = true; setupConnection(); });
+        }
+
+        function connectToOpponent() {
+            const tid = document.getElementById('oppCodeInput').value.trim();
+            if(!tid) return;
+            conn = peer.connect(tid);
+            isHost = false;
+            conn.on('open', () => conn.send({ type: 'JOIN', nickname: myNickname }));
+            setupConnection();
+        }
+
+        function setupConnection() {
+            conn.on('data', data => {
+                switch(data.type) {
+                    case 'JOIN': oppNickname = data.nickname; isMyTurn = true; conn.send({ type: 'ACCEPT', nickname: myNickname }); startGame(); break;
+                    case 'ACCEPT': oppNickname = data.nickname; isMyTurn = false; startGame(); break;
+                    case 'SYNC_ROLL': diceValues = data.diceValues; rollsLeft = data.rollsLeft; updateUI(); break;
+                    case 'SYNC_HOLD': isHeld[data.index] = data.isHeld; updateUI(); break;
+                    case 'SYNC_SCORE': oppScores[data.category] = data.score; if(!checkGameEnd()) { isMyTurn = true; resetTurnData(); updateUI(); } break;
+                    case 'SURRENDER': handleOpponentSurrender(); break;
+                    case 'REMATCH_PUSH': isOppWantRematch = true; handleRematchLogic(); break;
+                    case 'REMATCH_START': resetFullGame(data.starterNickname); break;
+                }
+            });
+            conn.on('close', () => { alert("연결이 종료되었습니다."); location.reload(); });
+        }
+
+        function startGame() {
+            switchView('game-view');
+            document.getElementById('p1Name').innerText = myNickname;
+            document.getElementById('p2Name').innerText = oppNickname;
+            myScores = {}; oppScores = {};
+            initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
+        }
+
+        function initDiceUI() {
+            const container = document.getElementById('diceContainer');
+            container.innerHTML = '';
+            for(let i=0; i<5; i++) {
+                let d = document.createElement('div'); d.className = 'dice'; d.id = 'die-'+i; d.innerText = '🎲';
+                d.onclick = () => toggleHold(i); container.appendChild(d);
+            }
+        }
+
+        function initScoreBoard() {
+            const upperBody = document.getElementById('upperScoreBody');
+            const lowerBody = document.getElementById('lowerScoreBody');
+            upperBody.innerHTML = ''; lowerBody.innerHTML = '';
+
+            const createRow = (cat) => `
+                <tr>
+                    <td class="cat-name">
+                        <i class="fa-solid ${cat.icon}"></i> ${cat.name}
+                        <span class="max-score">${cat.max}</span>
+                    </td>
+                    <td id="my-${cat.id}" class="score-cell" onclick="selectScore('${cat.id}')"></td>
+                    <td id="opp-${cat.id}" class="score-cell"></td>
+                </tr>`;
+
+            upperCategories.forEach(cat => upperBody.innerHTML += createRow(cat));
+            lowerCategories.forEach(cat => lowerBody.innerHTML += createRow(cat));
+        }
+
+        function rollDice() {
+            if(!isMyTurn || rollsLeft <= 0) return;
+            for(let i=0; i<5; i++) if(!isHeld[i]) diceValues[i] = Math.floor(Math.random()*6)+1;
+            rollsLeft--; updateUI();
+            conn.send({ type: 'SYNC_ROLL', diceValues, rollsLeft });
+        }
+
+        function toggleHold(index) {
+            if(!isMyTurn || rollsLeft === 3) return;
+            isHeld[index] = !isHeld[index]; updateUI();
+            conn.send({ type: 'SYNC_HOLD', index, isHeld: isHeld[index] });
+        }
+
+        function surrender() {
+            if(!confirm("정말 기권하시겠습니까? 상대방의 승리로 처리됩니다.")) return;
+            conn.send({ type: 'SURRENDER' });
+            showVictoryScreen(oppNickname); 
+        }
+
+        function handleOpponentSurrender() {
+            alert("상대방이 기권했습니다! 당신의 승리입니다.");
+            showVictoryScreen(myNickname);
+        }
+
+        function selectScore(catId) {
+            if(!isMyTurn || rollsLeft === 3 || myScores[catId] !== undefined) return;
+            let p = getPotentialScores();
+            myScores[catId] = p[catId];
+            conn.send({ type: 'SYNC_SCORE', category: catId, score: myScores[catId] });
+            isMyTurn = false; resetTurnData(); updateUI();
+            checkGameEnd();
+        }
+
+        function getPotentialScores() {
+            let counts = [0,0,0,0,0,0,0]; let sum = 0;
+            diceValues.forEach(d => { counts[d]++; sum += d; });
+            let p = {};
+            p['aces'] = counts[1]*1; p['twos'] = counts[2]*2; p['threes'] = counts[3]*3;
+            p['fours'] = counts[4]*4; p['fives'] = counts[5]*5; p['sixes'] = counts[6]*6;
+            p['choice'] = sum;
+            p['4ofakind'] = counts.some(c => c >= 4) ? sum : 0;
+            p['fullhouse'] = (counts.some(c => c === 3) && counts.some(c => c === 2)) || counts.some(c => c === 5) ? sum : 0;
+            let s = counts.slice(1).map(c => c>0?1:0).join('');
+            p['sstraight'] = s.includes('1111') ? 15 : 0;
+            p['lstraight'] = s.includes('11111') ? 30 : 0;
+            p['yacht'] = counts.some(c => c === 5) ? 50 : 0;
+            return p;
+        }
+
+        function calculateScores(scoresObj) {
+            let upper = ['aces','twos','threes','fours','fives','sixes'].reduce((a,c) => a+(scoresObj[c]||0), 0);
+            let bonus = upper >= 63 ? 35 : 0;
+            let total = Object.values(scoresObj).reduce((a,b)=>a+b, 0) + bonus;
+            return { upper, bonus, total };
+        }
+
+        function updateUI() {
+            for(let i=0; i<5; i++) {
+                let d = document.getElementById('die-'+i);
+                d.innerText = (rollsLeft===3 && diceValues[i]===1) ? '🎲' : diceValues[i];
+                d.className = 'dice' + (isHeld[i] ? ' held' : '');
+            }
+
+            document.getElementById('turnText').innerText = isMyTurn ? "🔥 내 차례입니다!" : `⌛ ${oppNickname}님의 차례...`;
+            document.getElementById('turnText').style.color = isMyTurn ? "#2ecc71" : "#e74c3c";
+            document.getElementById('rollBtn').disabled = !isMyTurn || rollsLeft <= 0;
+            document.getElementById('surrenderBtn').disabled = !isMyTurn;
+            document.getElementById('rollsLeftText').innerText = rollsLeft;
+
+            let myPot = getPotentialScores();
+            categories.forEach(cat => {
+                let m = document.getElementById(`my-${cat.id}`), o = document.getElementById(`opp-${cat.id}`);
+                o.innerText = oppScores[cat.id] !== undefined ? oppScores[cat.id] : '';
+                if(myScores[cat.id] !== undefined) { m.innerText = myScores[cat.id]; m.className = 'score-cell filled'; }
+                else if(isMyTurn && rollsLeft < 3) { m.innerText = myPot[cat.id]; m.className = 'score-cell potential'; }
+                else { m.innerText = ''; m.className = 'score-cell'; }
+            });
+
+            let myRes = calculateScores(myScores), oppRes = calculateScores(oppScores);
+            document.getElementById('my-subtotal').innerText = `${myRes.upper} / 63`;
+            document.getElementById('opp-subtotal').innerText = `${oppRes.upper} / 63`;
+            document.getElementById('my-bonus-val').innerText = myRes.bonus;
+            document.getElementById('opp-bonus-val').innerText = oppRes.bonus;
+            document.getElementById('my-total').innerText = myRes.total;
+            document.getElementById('opp-total').innerText = oppRes.total;
+
+            if(myRes.upper >= 63) document.getElementById('my-bonus-val').classList.add('bonus-achieved');
+            if(oppRes.upper >= 63) document.getElementById('opp-bonus-val').classList.add('bonus-achieved');
+        }
+
+        function checkGameEnd() {
+            if(Object.keys(myScores).length === 12 && Object.keys(oppScores).length === 12) {
+                let my = calculateScores(myScores).total, opp = calculateScores(oppScores).total;
+                showVictoryScreen(my > opp ? myNickname : (opp > my ? oppNickname : "무승부"));
+                return true;
+            }
+            return false;
+        }
+
+        function showVictoryScreen(winner) {
+            switchView('gameover-view');
+            lastWinner = winner; 
+            document.getElementById('winnerText').innerText = winner === "무승부" ? "🤝 무승부!" : `🎉 ${winner} 승리!`;
+            document.getElementById('finalScoreMsg').innerText = `나: ${calculateScores(myScores).total}점 | 상대: ${calculateScores(oppScores).total}점`;
+            amIWantRematch = false; isOppWantRematch = false;
+            document.getElementById('rematchStatus').innerText = "";
+            document.getElementById('rematchBtn').disabled = false;
+        }
+
+        function requestRematch() {
+            amIWantRematch = true;
+            document.getElementById('rematchBtn').disabled = true;
+            conn.send({ type: 'REMATCH_PUSH' });
+            handleRematchLogic();
+        }
+
+        function handleRematchLogic() {
+            if(amIWantRematch && isOppWantRematch) {
+                let starter = (lastWinner === myNickname) ? oppNickname : myNickname;
+                if(isHost) {
+                    conn.send({ type: 'REMATCH_START', starterNickname: starter });
+                    resetFullGame(starter);
+                }
+            } else {
+                document.getElementById('rematchStatus').innerText = "상대방의 수락을 기다리고 있습니다...";
+            }
+        }
+
+        function resetFullGame(starterNickname) {
+            isMyTurn = (starterNickname === myNickname);
+            startGame();
+        }
+
+        function resetTurnData() { diceValues = [1,1,1,1,1]; isHeld = [false,false,false,false,false]; rollsLeft = 3; }
+        function switchView(id) { document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        window.addEventListener('beforeunload', () => { if(conn) conn.close(); });
+    </script>
+</body>
+</html>
