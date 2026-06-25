@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Yacht Dice - UI 개선 버전</title>
+    <title>Yacht Dice - 간단하게 즐기는 Web요트</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -201,7 +201,7 @@
                     case 'REMATCH_START': resetFullGame(data.starterNickname); break;
                 }
             });
-            conn.on('close', () => { alert("연결이 종료되었습니다."); location.reload(); });
+            conn.on('close', () => { alert("상대방과의 연결이 종료되었습니다."); location.reload(); });
         }
 
         function startGame() {
