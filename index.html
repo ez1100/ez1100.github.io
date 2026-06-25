@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - 반응형 모바일 최적화</title>
+    <title>Yacht Dice - 반응형 모바일 최적화 (원클릭 복사)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* 모든 요소에 box-sizing 적용 (모바일 삐져나감 방지) */
         * { box-sizing: border-box; }
         
         body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #1a252f; color: white; margin: 0; padding: 15px; overflow-x: hidden; }
@@ -27,7 +26,6 @@
         .dice { width: 55px; height: 55px; background-color: #ecf0f1; color: #2c3e50; font-size: 30px; font-weight: bold; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 0 #bdc3c7; transition: 0.1s; user-select: none; }
         .dice.held { background-color: #f1c40f; color: #000; transform: translateY(5px); box-shadow: none; }
         
-        /* 💡 테이블 가로 길이를 %로 변경하여 화면에 맞게 꽉 차도록 수정 */
         table { margin: 15px auto; border-collapse: collapse; width: 100%; max-width: 450px; background-color: #fff; color: #333; border-radius: 10px; overflow: hidden; }
         th, td { border: 1px solid #ddd; padding: 8px 5px; text-align: center; }
         th { background-color: #2c3e50; color: white; font-size: 14px; }
@@ -46,12 +44,16 @@
         .guide-section { width: 100%; max-width: 450px; margin: 20px auto; text-align: left; background-color: #2c3e50; padding: 15px; border-radius: 10px; font-size: 12px; line-height: 1.5; color: #bdc3c7; }
         .guide-section h4 { color: #f1c40f; margin-top: 0; margin-bottom: 10px; }
         
-        /* 입력창들도 모바일에서 안 삐져나가게 수정 */
         input { max-width: 100%; width: 250px; padding: 10px; border-radius: 5px; border: none; text-align: center; }
-        .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0; font-family: monospace; word-break: break-all; max-width: 100%; }
+        
+        /* 💡 원클릭 복사용 코드 박스 디자인 보강 */
+        .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0; font-family: monospace; word-break: break-all; max-width: 100%; cursor: pointer; transition: 0.2s; border: 2px dashed transparent; }
+        .code-box:hover { background-color: #3b536b; border-color: #bdc3c7; }
+        .code-box:active { background-color: #2c3e50; transform: scale(0.98); }
+        .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-family: 'Pretendard', sans-serif; font-weight: bold; }
+        
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
 
-        /* 📱 모바일 세로 화면(좁은 화면)을 위한 미디어 쿼리 */
         @media (max-width: 400px) {
             h2 { font-size: 22px; }
             .dice { width: 45px; height: 45px; font-size: 24px; border-radius: 8px; }
@@ -61,7 +63,6 @@
             .score-cell { font-size: 14px; }
             .max-score { display: block; float: none; margin-top: 2px; font-size: 10px; }
             .guide-section { font-size: 11px; }
-            /* 모바일 가이드는 위아래로 한 줄씩 배치 */
             #guide-grid { grid-template-columns: 1fr !important; gap: 5px !important; } 
         }
     </style>
@@ -79,7 +80,14 @@
 
     <div id="lobby-view" class="view">
         <h3 id="welcomeText"></h3>
-        <div class="code-box">내 관리 코드:<br><span id="myCodeDisplay" style="color: #f1c40f;">-</span></div><br>
+        
+        <div class="code-box" onclick="copyMyCode()" title="클릭하여 복사">
+            내 관리 코드:<br>
+            <span id="myCodeDisplay" style="color: #f1c40f; font-size: 16px;">생성 중...</span>
+            <div id="copyHint" class="copy-hint"><i class="fa-regular fa-copy"></i> 터치해서 복사하기</div>
+        </div>
+        <br>
+        
         <input type="text" id="oppCodeInput" placeholder="상대방 코드 입력 (봇전은 BOT)"><br><br>
         <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled>게임 시작</button>
     </div>
@@ -185,6 +193,26 @@
 
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
+
+        // 💡 클립보드 원클릭 복사 로직 추가
+        function copyMyCode() {
+            const codeText = document.getElementById('myCodeDisplay').innerText;
+            if (codeText === '생성 중...' || codeText === '-') return;
+
+            navigator.clipboard.writeText(codeText).then(() => {
+                const hintEl = document.getElementById('copyHint');
+                hintEl.innerHTML = '<i class="fa-solid fa-check"></i> 복사 완료!';
+                hintEl.style.color = '#2ecc71';
+                
+                // 2초 뒤 원래 텍스트로 복구
+                setTimeout(() => {
+                    hintEl.innerHTML = '<i class="fa-regular fa-copy"></i> 터치해서 복사하기';
+                    hintEl.style.color = '#bdc3c7';
+                }, 2000);
+            }).catch(err => {
+                alert("복사에 실패했습니다. 직접 코드를 꾹 눌러 복사해주세요.");
+            });
+        }
 
         // 폭죽 파티클 시스템
         const canvas = document.getElementById('fireworksCanvas');
