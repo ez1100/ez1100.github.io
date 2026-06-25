@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - 반응형 모바일 최적화 (원클릭 복사)</title>
+    <title>Yacht Dice - 반응형 모바일 최적화 (랜덤 닉네임 지원)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -46,7 +46,6 @@
         
         input { max-width: 100%; width: 250px; padding: 10px; border-radius: 5px; border: none; text-align: center; }
         
-        /* 💡 원클릭 복사용 코드 박스 디자인 보강 */
         .code-box { background-color: #34495e; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0; font-family: monospace; word-break: break-all; max-width: 100%; cursor: pointer; transition: 0.2s; border: 2px dashed transparent; }
         .code-box:hover { background-color: #3b536b; border-color: #bdc3c7; }
         .code-box:active { background-color: #2c3e50; transform: scale(0.98); }
@@ -74,7 +73,7 @@
     <h2>🎲 YACHT DICE ONLINE 🎲</h2>
 
     <div id="login-view" class="view active">
-        <input type="text" id="nicknameInput" placeholder="아이디 입력"><br><br>
+        <input type="text" id="nicknameInput" placeholder="아이디 입력 (빈칸 시 랜덤)"><br><br>
         <button class="btn-red" onclick="enterLobby()">게임 접속</button>
     </div>
 
@@ -194,7 +193,6 @@
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
 
-        // 💡 클립보드 원클릭 복사 로직 추가
         function copyMyCode() {
             const codeText = document.getElementById('myCodeDisplay').innerText;
             if (codeText === '생성 중...' || codeText === '-') return;
@@ -203,8 +201,6 @@
                 const hintEl = document.getElementById('copyHint');
                 hintEl.innerHTML = '<i class="fa-solid fa-check"></i> 복사 완료!';
                 hintEl.style.color = '#2ecc71';
-                
-                // 2초 뒤 원래 텍스트로 복구
                 setTimeout(() => {
                     hintEl.innerHTML = '<i class="fa-regular fa-copy"></i> 터치해서 복사하기';
                     hintEl.style.color = '#bdc3c7';
@@ -214,7 +210,6 @@
             });
         }
 
-        // 폭죽 파티클 시스템
         const canvas = document.getElementById('fireworksCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -272,9 +267,17 @@
             if (counts.some(c => c === 5)) triggerYachtFireworks();
         }
 
-        // 게임 제어 로직
+        // 💡 랜덤 아이디 자동 부여 로직
         function enterLobby() {
-            myNickname = document.getElementById('nicknameInput').value.trim() || "User";
+            let inputName = document.getElementById('nicknameInput').value.trim();
+            if (!inputName) {
+                // 입력값이 없으면 0000~9999 사이의 4자리 랜덤 숫자 생성
+                let randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+                myNickname = "유저_" + randomNum;
+            } else {
+                myNickname = inputName;
+            }
+
             switchView('lobby-view'); document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
             peer = new Peer();
             peer.on('open', id => { document.getElementById('myCodeDisplay').innerText = id; document.getElementById('connectBtn').disabled = false; });
