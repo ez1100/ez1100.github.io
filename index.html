@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - Global Edition (Error Handling)</title>
+    <title>Yacht Dice - v2.3.0 Evolution Edition</title>
     
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -16,7 +16,10 @@
         .active { display: block; }
         #fireworksCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
 
-        h2 { font-size: 48px; margin-top: 30px; margin-bottom: 20px; text-shadow: 2px 2px 5px rgba(0,0,0,0.4); }
+        /* 💡 타이틀 및 버전 뱃지 스타일 */
+        .title-wrapper { margin-top: 30px; margin-bottom: 20px; }
+        h2 { font-size: 48px; margin: 0; display: inline; text-shadow: 2px 2px 5px rgba(0,0,0,0.4); vertical-align: middle; }
+        .ver-badge { font-size: 15px; background-color: #e67e22; color: white; padding: 4px 10px; border-radius: 15px; font-weight: bold; vertical-align: middle; margin-left: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
 
         .lang-selector { 
             display: block; margin: 15px auto 0 auto; width: 500px; max-width: 100%; 
@@ -25,6 +28,16 @@
             outline: none; transition: 0.2s; 
         }
         .lang-selector:focus { border-color: #f1c40f; }
+
+        /* 💡 스마트폰 화면 안 가리는 컴팩트 패치노트 상자 */
+        .patch-notes { 
+            width: 500px; max-width: 100%; margin: 15px auto 0 auto; 
+            background-color: #2c3e50; border-radius: 8px; padding: 12px 15px; 
+            text-align: left; font-size: 12px; color: #bdc3c7; 
+            max-height: 110px; overflow-y: auto; line-height: 1.6; border: 1px solid #3b536b;
+        }
+        .patch-notes::-webkit-scrollbar { width: 6px; }
+        .patch-notes::-webkit-scrollbar-thumb { background-color: #7f8c8d; border-radius: 3px; }
 
         button { padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.3s; margin: 5px; }
         .btn-red { background-color: #e74c3c; color: white; } .btn-red:hover { background-color: #c0392b; }
@@ -70,9 +83,7 @@
         .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-weight: bold; }
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
         
-        /* 💡 에러 메시지 스타일 */
         .error-msg { color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 12px; display: none; animation: popHighlight 0.3s ease-out; }
-
         #actionButtons { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
 
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(26, 37, 47, 0.4); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; justify-content: flex-end; padding-bottom: 30px; }
@@ -80,7 +91,10 @@
         .result-box { background-color: #2c3e50; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 2px solid #f1c40f; width: 90%; max-width: 400px; }
 
         @media (max-width: 400px) {
-            h2 { font-size: 44px; margin-top: 40px; margin-bottom: 15px; line-height: 1.1; } 
+            .title-wrapper { margin-top: 25px; margin-bottom: 15px; }
+            h2 { font-size: 26px; } 
+            .ver-badge { font-size: 11px; padding: 2px 6px; margin-left: 4px; }
+
             .dice { width: 45px; height: 45px; font-size: 24px; border-radius: 8px; } .dice-container { gap: 8px; } button { font-size: 14px; padding: 10px 15px; } 
             #actionButtons button { margin: 0; flex: 1; }
             #surrenderBtn { flex: 0.4; } 
@@ -102,7 +116,10 @@
 
     <canvas id="fireworksCanvas"></canvas>
 
-    <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2>
+    <div class="title-wrapper">
+        <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2>
+        <span class="ver-badge">v2.3.0</span>
+    </div>
 
     <div id="login-view" class="view active">
         <p data-i18n="nicknameGuide" style="color: #bdc3c7; font-size: 15px; margin-bottom: 15px; font-weight: bold;">
@@ -118,6 +135,16 @@
             <option value="zh-CN">🇨🇳 简体中文 (S. Chinese)</option>
             <option value="zh-TW">🇹🇼 繁體中文 (T. Chinese)</option>
         </select>
+
+        <div class="patch-notes">
+            <div style="font-weight:bold; color:white; margin-bottom:6px;"><i class="fa-solid fa-bullhorn" style="color:#f1c40f;"></i> <span data-i18n="patchTitle">업데이트 내역</span></div>
+            • <b>v2.3.0</b> : P2P 10초 타임아웃 & 에러 핸들링 탑재<br>
+            • <b>v2.2.0</b> : 알파다이스 진화 알고리즘 (황금 실수율 커브)<br>
+            • <b>v2.1.0</b> : 대전 보상 선택지 (강화 훈련 / 반복 훈련)<br>
+            • <b>v2.0.0</b> : 글로벌 5개국어 지원 & 스크린샷 현지화<br>
+            • <b>v1.5.0</b> : 모바일 컴팩트 UI & 테이블 줄바꿈 방지<br>
+            • <b>v1.0.0</b> : 실시간 온라인 대전 & 봇 조기 기권 탑재
+        </div>
     </div>
 
     <div id="lobby-view" class="view">
@@ -128,7 +155,7 @@
             <div id="copyHint" class="copy-hint" data-i18n="copyHintTxt"><i class="fa-regular fa-copy"></i> 터치해서 복사하기</div>
         </div><br>
         <input type="text" id="oppCodeInput" data-i18n="oppPlaceholder" placeholder="상대방 코드 입력 (빈칸 시 봇전)"><br>
-        <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" data-i18n="startBtn" style="width: 500px; max-width: 100%; margin-top: 10px;">게임 시작</button>
+        <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled data-i18n="startBtn" style="width: 500px; max-width: 100%; margin-top: 10px;">게임 시작</button>
         
         <div id="connectionErrorMsg" class="error-msg"></div>
     </div>
@@ -205,7 +232,6 @@
                 <button class="btn-red" id="levelUpBtn" onclick="triggerLevelUpRematch()" style="display: none; font-size: 15px; width: 100%; margin: 0;">
                     🔥 <span data-i18n="levelUpBtnTxt">더 강한 상대에게 도전</span>
                 </button>
-                
                 <div style="display: flex; justify-content: space-between; gap: 10px;">
                     <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px; margin: 0;" data-i18n="rematchBtnTxt">다시하기</button>
                     <button class="btn-blue" onclick="location.reload()" style="flex: 1; font-size: 14px; margin: 0;" data-i18n="exitBtnTxt">종료</button>
@@ -216,12 +242,9 @@
     </div>
 
     <script>
-        // =========================================================================
-        // 🌐 i18n + l10n 시스템 (에러 메시지 번역 추가)
-        // =========================================================================
         const i18n = {
             ko: {
-                mainTitle: "🎲 YACHT DICE ONLINE 🎲", nicknameGuide: "상대방에게 보여질 닉네임을 입력해 주세요.",
+                mainTitle: "🎲 YACHT DICE ONLINE 🎲", patchTitle: "업데이트 내역", nicknameGuide: "상대방에게 보여질 닉네임을 입력해 주세요.",
                 idPlaceholder: "아이디 입력 (빈칸 시 랜덤)", loginBtn: "게임 접속",
                 myCodeTxt: "내 관리 코드:", copyHintTxt: "<i class='fa-regular fa-copy'></i> 터치해서 복사하기", copiedTxt: "<i class='fa-solid fa-check'></i> 복사 완료!",
                 oppPlaceholder: "상대방 코드 입력 (빈칸 시 봇전)", startBtn: "게임 시작", waiting: "대기 중...", rollBtnTxt: "주사위 굴리기", surrenderBtnTxt: "기권",
@@ -236,10 +259,11 @@
                 connectingBtn: "연결 중...",
                 errNotFound: "상대방 방이 없습니다. 코드를 확인하거나 상대방이 나갔는지 확인하세요.",
                 errNetwork: "네트워크 오류가 발생했습니다. (방화벽/VPN 확인)",
-                errGeneric: "연결에 실패했습니다. 다시 시도해 주세요."
+                errGeneric: "연결에 실패했습니다. 다시 시도해 주세요.",
+                errTimeout: "연결 시간 초과! (방화벽에 막혔거나 상대방이 화면을 껐습니다)"
             },
             en: {
-                mainTitle: "🎲 YACHT DICE ONLINE 🎲", nicknameGuide: "Enter a nickname to show your opponent.",
+                mainTitle: "🎲 YACHT DICE ONLINE 🎲", patchTitle: "Patch Notes", nicknameGuide: "Enter a nickname to show your opponent.",
                 idPlaceholder: "Enter ID (Blank for Random)", loginBtn: "Enter Lobby",
                 myCodeTxt: "My Room Code:", copyHintTxt: "<i class='fa-regular fa-copy'></i> Tap to copy", copiedTxt: "<i class='fa-solid fa-check'></i> Copied!",
                 oppPlaceholder: "Opponent Code (Blank for Bot)", startBtn: "Start Game", waiting: "Waiting...", rollBtnTxt: "Roll Dice", surrenderBtnTxt: "Surrender",
@@ -254,10 +278,11 @@
                 connectingBtn: "Connecting...",
                 errNotFound: "Opponent not found. Check the code or if they left.",
                 errNetwork: "Network error. (Check firewall/VPN)",
-                errGeneric: "Connection failed. Please try again."
+                errGeneric: "Connection failed. Please try again.",
+                errTimeout: "Connection timed out! (Firewall blocked or opponent left)"
             },
             ja: {
-                mainTitle: "🎲 YACHT DICE ONLINE 🎲", nicknameGuide: "相手に表示されるニックネームを入力してください。",
+                mainTitle: "🎲 YACHT DICE ONLINE 🎲", patchTitle: "更新履歴", nicknameGuide: "相手に表示されるニックネームを入力してください。",
                 idPlaceholder: "ID入力 (空欄でランダム)", loginBtn: "ゲーム接続",
                 myCodeTxt: "自分のコード:", copyHintTxt: "<i class='fa-regular fa-copy'></i> タップしてコピー", copiedTxt: "<i class='fa-solid fa-check'></i> コピー完了!",
                 oppPlaceholder: "相手のコード (空欄でBOT戦)", startBtn: "ゲーム開始", waiting: "待機中...", rollBtnTxt: "サイコロを振る", surrenderBtnTxt: "降参",
@@ -272,10 +297,11 @@
                 connectingBtn: "接続中...",
                 errNotFound: "相手が見つかりません。コードを確認するか、相手が退出していないか確認してください。",
                 errNetwork: "ネットワークエラーが発生しました。(ファイアウォール/VPNを確認)",
-                errGeneric: "接続に失敗しました。もう一度お試しください。"
+                errGeneric: "接続に失敗しました。もう一度お試しください。",
+                errTimeout: "接続タイムアウト！ (ファイアウォールまたは相手が離脱しました)"
             },
             'zh-CN': {
-                mainTitle: "🎲 快艇骰子 ONLINE 🎲", nicknameGuide: "请输入将向对手显示的昵称。",
+                mainTitle: "🎲 快艇骰子 ONLINE 🎲", patchTitle: "更新日志", nicknameGuide: "请输入将向对手显示的昵称。",
                 idPlaceholder: "输入ID (留空则随机)", loginBtn: "进入游戏",
                 myCodeTxt: "我的房号:", copyHintTxt: "<i class='fa-regular fa-copy'></i> 点击复制", copiedTxt: "<i class='fa-solid fa-check'></i> 复制成功!",
                 oppPlaceholder: "对手房号 (留空与机器人对战)", startBtn: "开始游戏", waiting: "等待中...", rollBtnTxt: "掷骰子", surrenderBtnTxt: "投降",
@@ -290,10 +316,11 @@
                 connectingBtn: "连接中...",
                 errNotFound: "找不到对手。请检查房号或对手是否已离开。",
                 errNetwork: "网络错误。(请检查防火墙/VPN)",
-                errGeneric: "连接失败。请重试。"
+                errGeneric: "连接失败。请重试。",
+                errTimeout: "连接超时！(被防火墙拦截或对手已离开)"
             },
             'zh-TW': {
-                mainTitle: "🎲 快艇骰子 ONLINE 🎲", nicknameGuide: "請輸入將向對手顯示的暱稱。",
+                mainTitle: "🎲 快艇骰子 ONLINE 🎲", patchTitle: "更新日誌", nicknameGuide: "請輸入將向對手顯示的暱稱。",
                 idPlaceholder: "輸入ID (留白則隨機)", loginBtn: "進入遊戲",
                 myCodeTxt: "我的房號:", copyHintTxt: "<i class='fa-regular fa-copy'></i> 點擊複製", copiedTxt: "<i class='fa-solid fa-check'></i> 複製成功!",
                 oppPlaceholder: "對手房號 (留白與機器人對戰)", startBtn: "開始遊戲", waiting: "等待中...", rollBtnTxt: "擲骰子", surrenderBtnTxt: "投降",
@@ -308,7 +335,8 @@
                 connectingBtn: "連接中...",
                 errNotFound: "找不到對手。請檢查房號或對手是否已離開。",
                 errNetwork: "網路錯誤。(請檢查防火牆/VPN)",
-                errGeneric: "連接失敗。請重試。"
+                errGeneric: "連接失敗。請重試。",
+                errTimeout: "連接超時！(被防火牆攔截或對手已離開)"
             }
         };
 
@@ -340,10 +368,9 @@
             } else {
                 document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
             }
-            
-            // 연결 중인 상태일 때 언어를 바꾸면 버튼 텍스트도 번역 적용
+
             const connectBtn = document.getElementById('connectBtn');
-            if(connectBtn.disabled && connectBtn.innerText !== t.startBtn) {
+            if(connectBtn && connectBtn.disabled && connectBtn.innerText !== t.startBtn) {
                 connectBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t.connectingBtn}`;
             }
         }
@@ -373,6 +400,7 @@
         let isBotMode = false; 
         
         let botLevel = 1; 
+        let connectionTimeoutId = null; 
 
         let diceValues = [1, 1, 1, 1, 1];
         let isHeld = [false, false, false, false, false];
@@ -505,7 +533,6 @@
 
             switchView('lobby-view'); document.getElementById('welcomeText').innerText = `HELLO, ${myNickname}!`;
             
-            // 💡 Peer 객체 생성 및 에러 리스너 부착
             peer = new Peer();
             peer.on('open', id => { 
                 document.getElementById('myCodeDisplay').innerText = id; 
@@ -518,7 +545,6 @@
                 setupConnection(); 
             });
 
-            // 💡 PeerJS 자체 에러 감지 (방 없음, 네트워크 단절 등)
             peer.on('error', err => {
                 const errorBox = document.getElementById('connectionErrorMsg');
                 const connectBtn = document.getElementById('connectBtn');
@@ -533,9 +559,9 @@
                     errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errGeneric} (${err.type})`;
                 }
                 
-                // 버튼 상태 복구
                 connectBtn.disabled = false;
                 connectBtn.innerText = t.startBtn;
+                if(connectionTimeoutId) clearTimeout(connectionTimeoutId);
             });
         }
 
@@ -544,7 +570,6 @@
             const errorBox = document.getElementById('connectionErrorMsg');
             const connectBtn = document.getElementById('connectBtn');
             
-            // 기존 에러 숨기기 및 버튼 로딩 처리
             errorBox.style.display = 'none';
             connectBtn.disabled = true;
             connectBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t.connectingBtn}`;
@@ -554,16 +579,25 @@
                 botLevel = 1; 
                 oppNickname = t.botName + " Lv." + botLevel;
                 isHost = true; isMyTurn = true;
-                setTimeout(startGame, 500); // 봇전은 0.5초 로딩 후 즉시 시작
+                setTimeout(startGame, 500); 
                 return;
             }
 
             conn = peer.connect(tid); isHost = false;
             
-            // 💡 연결 성공 시
+            connectionTimeoutId = setTimeout(() => {
+                if (connectBtn.disabled) { 
+                    conn.close(); 
+                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errTimeout}`;
+                    errorBox.style.display = 'block';
+                    connectBtn.disabled = false;
+                    connectBtn.innerText = t.startBtn;
+                }
+            }, 10000); 
+
             conn.on('open', () => {
+                clearTimeout(connectionTimeoutId); 
                 conn.send({ type: 'JOIN', nickname: myNickname });
-                // setupConnection은 여기서 부르지 않고 전체 로직에서 커버됨
             });
             
             setupConnection();
@@ -596,6 +630,8 @@
         }
 
         function startGame() {
+            if(connectionTimeoutId) clearTimeout(connectionTimeoutId);
+            
             switchView('game-view');
             document.getElementById('gameover-overlay').classList.remove('show');
             document.getElementById('actionButtons').style.display = 'flex'; 
@@ -605,7 +641,6 @@
             lastScoredId = null; 
             initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
             
-            // 💡 게임 시작 성공 시 로비 버튼 텍스트 원래대로 복구 (다시 돌아올 경우 대비)
             const connectBtn = document.getElementById('connectBtn');
             if(connectBtn) {
                 connectBtn.disabled = false;
@@ -756,7 +791,8 @@
         }
 
         function getMistakeChance() {
-            return Math.max(0, 50 - (botLevel * 10)); 
+            const rates = [15, 8, 4, 0]; 
+            return rates[Math.min(botLevel - 1, 3)]; 
         }
 
         function botRollDice(callback) { 
