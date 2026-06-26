@@ -17,19 +17,15 @@
         .active { display: block; }
         #fireworksCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
 
-        /* 💡 타이틀 및 버전 뱃지 스타일 */
         .title-wrapper { margin-top: 30px; margin-bottom: 20px; }
         h2 { 
-/* 💡 clamp(최소크기, 유연한크기, 최대크기) */
-    /* 모바일 최소 24px, 화면 비례 6.5vw로 커지다가, PC에서는 최대 36px까지만 커지도록 제한 */
-    font-size: clamp(24px, 6.5vw, 65px); 
-    
-    margin: 0; 
-    display: inline-block; 
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.4); 
-    vertical-align: middle; 
-    white-space: nowrap; /* 글자 깨짐 방지 */
-}
+            font-size: clamp(24px, 6.5vw, 65px); 
+            margin: 0; 
+            display: inline-block; 
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.4); 
+            vertical-align: middle; 
+            white-space: nowrap; 
+        }
         .lang-selector { 
             display: block; margin: 15px auto 0 auto; width: 500px; max-width: 100%; 
             background-color: #34495e; color: white; border: 1px solid #bdc3c7; 
@@ -38,7 +34,6 @@
         }
         .lang-selector:focus { border-color: #f1c40f; }
 
-        /* 💡 스마트폰 화면 안 가리는 컴팩트 패치노트 상자 */
         .patch-notes { 
             width: 500px; max-width: 100%; margin: 15px auto 0 auto; 
             background-color: #2c3e50; border-radius: 8px; padding: 12px 15px; 
@@ -55,11 +50,10 @@
         .btn-purple { background-color: #9b59b6; color: white; } .btn-purple:hover { background-color: #8e44ad; }
         button:disabled { background-color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
 
-     /* 💡 3D 주사위 박스 크기 1.2배 확대 (65px * 1.2 = 78px) */
-.dice-container { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 20px 0; min-height: 80px; flex-wrap: wrap; }
-.dice-3d-box { width: 78px; height: 78px; position: relative; cursor: pointer; border-radius: 12px; transition: 0.1s; background-color: rgba(255,255,255,0.03); border: 2px solid transparent; box-sizing: border-box; }
-.dice-3d-box.held { border-color: #f1c40f; background-color: rgba(241, 196, 15, 0.1); transform: translateY(5px); }
-.dice-3d-box canvas { width: 100% !important; height: 100% !important; display: block; border-radius: 10px; }
+        .dice-container { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 20px 0; min-height: 80px; flex-wrap: wrap; }
+        .dice-3d-box { width: 78px; height: 78px; position: relative; cursor: pointer; border-radius: 12px; transition: 0.1s; background-color: rgba(255,255,255,0.03); border: 2px solid transparent; box-sizing: border-box; }
+        .dice-3d-box.held { border-color: #f1c40f; background-color: rgba(241, 196, 15, 0.1); transform: translateY(5px); }
+        .dice-3d-box canvas { width: 100% !important; height: 100% !important; display: block; border-radius: 10px; }
 
         .result-dice-text { font-size: 36px; font-weight: 900; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); animation: popHighlight 0.5s ease-out; }
 
@@ -90,6 +84,7 @@
         .code-box:active { background-color: #2c3e50; transform: scale(0.98); }
         .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-weight: bold; }
         .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
+        .status-msg.opp-turn { color: #e74c3c !important; }
         
         .error-msg { color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 12px; display: none; animation: popHighlight 0.3s ease-out; }
         #actionButtons { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
@@ -98,14 +93,11 @@
         .overlay.show { display: flex; }
         .result-box { background-color: #2c3e50; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 2px solid #f1c40f; width: 90%; max-width: 500px; }
 
-        /* 💡 모바일 전용 미디어 쿼리 (@media (max-width: 500px
-        )) 안의 h2도 수정 */
-@media (max-width: 500px) {
-    .title-wrapper { margin-top: 25px; margin-bottom: 15px; }
-    h2 { font-size: 24px; } /* 💡 모바일 화면에 최적화된 컴팩트한 크기로 세팅 */
-    .ver-badge { font-size: 11px; padding: 2px 6px; margin-left: 4px; }
-    /* ... 이하 기존 동일 ... */
-}
+        @media (max-width: 500px) {
+            .title-wrapper { margin-top: 25px; margin-bottom: 15px; }
+            h2 { font-size: 24px; } 
+            .ver-badge { font-size: 11px; padding: 2px 6px; margin-left: 4px; }
+        }
     </style>
 </head>
 <body>
@@ -113,10 +105,10 @@
     <canvas id="fireworksCanvas"></canvas>
 
     <div class="title-wrapper">
-    <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2>
-    <br>
-    <span class="ver-badge">v2.3.1</span>
-</div>
+        <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2>
+        <br>
+        <span class="ver-badge">v2.3.2</span>
+    </div>
 
     <div id="login-view" class="view active">
         <p data-i18n="nicknameGuide" style="color: #bdc3c7; font-size: 15px; margin-bottom: 15px; font-weight: bold;">
@@ -135,6 +127,7 @@
 
         <div class="patch-notes">
             <div style="font-weight:bold; color:white; margin-bottom:6px;"><i class="fa-solid fa-bullhorn" style="color:#f1c40f;"></i> <span data-i18n="patchTitle">업데이트 내역</span></div>
+            • <b>v2.3.2</b> : 상대편의 주사위 컬러변경, 알파다이스 버그수정<br>
             • <b>v2.3.1</b> : 난이도 조절, 주사위 3d 연출로 교체, 사이즈 확대<br>
             • <b>v2.3.0</b> : P2P 10초 타임아웃 & 에러 핸들링 탑재<br>
             • <b>v2.2.0</b> : 알파다이스 진화 알고리즘 (황금 실수율 커브)<br>
@@ -265,63 +258,6 @@
                 errNetwork: "Network error. (Check firewall/VPN)",
                 errGeneric: "Connection failed. Please try again.",
                 errTimeout: "Connection timed out! (Firewall blocked or opponent left)"
-            },
-            ja: {
-                mainTitle: "🎲 YACHT DICE ONLINE 🎲", patchTitle: "更新履歴", nicknameGuide: "相手に表示されるニックネームを入力してください。",
-                idPlaceholder: "ID入力 (空欄でランダム)", loginBtn: "ゲーム接続",
-                myCodeTxt: "自分のコード:", copyHintTxt: "<i class='fa-regular fa-copy'></i> タップしてコピー", copiedTxt: "<i class='fa-solid fa-check'></i> コピー完了!",
-                oppPlaceholder: "相手のコード (空欄でBOT戦)", startBtn: "ゲーム開始", waiting: "待機中...", rollBtnTxt: "サイコロを振る", surrenderBtnTxt: "降参",
-                catTitle: "カテゴリー", subtotalTxt: "小計", bonusTxt: "ボーナス<br><span style='color: #7f8c8d; font-size: 10px; font-weight: normal;'>(小計63点以上で+35点)</span>",
-                guideTitle: "<i class='fa-solid fa-book'></i> 点数計算方法",
-                guideLeft: "<b>• Aces~Sixes:</b> 該当する数字の合計<br><b>• Choice:</b> 全サイコロの合計<br><b>• 4 of a Kind:</b> 4つ以上同じ数字 (全合計)<br><b>• Full House:</b> 3つ同じ＋2つ同じ (全合計)",
-                guideRight: "<b>• S. Straight:</b> 4連続の数字 (15点)<br><b>• L. Straight:</b> 5連続의 数字 (30点)<br><b>• Yacht:</b> 5つ同じ数字 (50点)<br><b style='color: #f1c40f;'>⭐ 小計63点以上で+35点!</b>",
-                captureBtnTxt: "スコアを保存", rematchBtnTxt: "もう一度", retryBtnTxt: "同じ難易度で再挑戦", levelUpBtnTxt: "より強い相手に挑戦", exitBtnTxt: "終了", botName: "🤖 アルファダイ스", userStr: "ユーザー", maxTxt: "最大", fixTxt: "点",
-                myTxtStr: "私", oppTxtStr: "相手", myTurn: "🔥 あなた의 番です!", botThinking: "🤖 思考中...", oppTurn: " の番です...",
-                draw: "🤝 引き分け 🤝", win: "🎉 勝利 🎉", lose: "😭 敗北 😭", botLose: "😭 ｱﾙﾌｧﾀﾞｲｽの勝利...", winMsg: "の勝利!",
-                surrenderAlert: "本当に降参しますか？", oppSurrenderAlert: "相手が降参しました！", connClosed: "接続が切れました。", botSurrenderMsg: "🤖 勝率0%を検出… 降参します。",
-                connectingBtn: "接続中...",
-                errNotFound: "相手が見つかりません。コードを確認するか、相手が退出していないか確認してください。",
-                errNetwork: "ネットワークエラーが発生しました。(ファイアウォール/VPNを確認)",
-                errGeneric: "接続に失敗しました。もう一度お試しください。",
-                errTimeout: "接続タイムアウト！ (ファイアウォールまたは相手が離脱しました)"
-            },
-            'zh-CN': {
-                mainTitle: "🎲 快艇骰子 ONLINE 🎲", patchTitle: "更新日志", nicknameGuide: "请输入将向对手显示的昵称。",
-                idPlaceholder: "输入ID (留空则随机)", loginBtn: "进入游戏",
-                myCodeTxt: "我的房号:", copyHintTxt: "<i class='fa-regular fa-copy'></i> 点击复制", copiedTxt: "<i class='fa-solid fa-check'></i> 复制成功!",
-                oppPlaceholder: "对手房号 (留空与机器人对战)", startBtn: "开始游戏", waiting: "等待中...", rollBtnTxt: "掷骰子", surrenderBtnTxt: "投降",
-                catTitle: "项目", subtotalTxt: "上半部总分", bonusTxt: "奖励<br><span style='color: #7f8c8d; font-size: 10px; font-weight: normal;'>(大于等于63分获得+35分)</span>",
-                guideTitle: "<i class='fa-solid fa-book'></i> 局分方式",
-                guideLeft: "<b>• Aces~Sixes:</b> 该数字的总和<br><b>• Choice:</b> 所有骰子的总和<br><b>• 4 of a Kind:</b> 至少4个相同数字 (全部总和)<br><b>• Full House:</b> 3个相同+2个相同 (全部总和)",
-                guideRight: "<b>• S. Straight:</b> 4个连续数字 (15分)<br><b>• L. Straight:</b> 5个连续数字 (30分)<br><b>• Yacht:</b> 5个相同数字 (50分)<br><b style='color: #f1c40f;'>⭐ 上半部达63分获得+35分!</b>",
-                captureBtnTxt: "截图计分板", rematchBtnTxt: "再来一局", retryBtnTxt: "重新挑战当前难度", levelUpBtnTxt: "挑战更强对手", exitBtnTxt: "结束", botName: "🤖 阿尔法骰子", userStr: "玩家", maxTxt: "最高", fixTxt: "分",
-                myTxtStr: "我", oppTxtStr: "对手", myTurn: "🔥 轮到你了!", botThinking: "🤖 思考中...", oppTurn: " 的回合...",
-                draw: "🤝 平局 🤝", win: "🎉 胜利 🎉", lose: "😭 失败 😭", botLose: "😭 机器人获胜...", winMsg: "获胜!",
-                surrenderAlert: "确定要投降吗？", oppSurrenderAlert: "对手已投降！", connClosed: "连接已断开。", botSurrenderMsg: "🤖 计算胜率为0%... 我投降。",
-                connectingBtn: "连接中...",
-                errNotFound: "找不到对手。请检查房号或对手是否已离开。",
-                errNetwork: "网络错误。(请检查防火墙/VPN)",
-                errGeneric: "连接失败。请重试。",
-                errTimeout: "连接超时！(被防火墙拦截或对手已离开)"
-            },
-            'zh-TW': {
-                mainTitle: "🎲 快艇骰子 ONLINE 🎲", patchTitle: "更新日誌", nicknameGuide: "請輸入將向對手顯示的暱稱。",
-                idPlaceholder: "輸入ID (留白則隨機)", loginBtn: "進入遊戲",
-                myCodeTxt: "我的房號:", copyHintTxt: "<i class='fa-regular fa-copy'></i> 點擊複製", copiedTxt: "<i class='fa-solid fa-check'></i> 複製成功!",
-                oppPlaceholder: "對手房號 (留白與機器人對戰)", startBtn: "開始遊戲", waiting: "等待中...", rollBtnTxt: "擲骰子", surrenderBtnTxt: "投降",
-                catTitle: "項目", subtotalTxt: "上半部總分", bonusTxt: "獎勵<br><span style='color: #7f8c8d; font-size: 10px; font-weight: normal;'>(大於等於63分獲得+35分)</span>",
-                guideTitle: "<i class='fa-solid fa-book'></i> 計分方式",
-                guideLeft: "<b>• Aces~Sixes:</b> 該數字的總和<br><b>• Choice:</b> 所有骰子的總和<br><b>• 4 of a Kind:</b> 至少4個相同數字 (全部總和)<br><b>• Full House:</b> 3個相同+2個相同 (全部總和)",
-                guideRight: "<b>• S. Straight:</b> 4個連續數字 (15分)<br><b>• L. Straight:</b> 5個連續數字 (30分)<br><b>• Yacht:</b> 5個相同數字 (50分)<br><b style='color: #f1c40f;'>⭐ 上半部達63分獲得+35分!</b>",
-                captureBtnTxt: "截圖計分板", rematchBtnTxt: "再來一局", retryBtnTxt: "重新挑戰當前難度", levelUpBtnTxt: "挑戰更強對手", exitBtnTxt: "結束", botName: "🤖 阿爾法骰子", userStr: "玩家", maxTxt: "最高", fixTxt: "分",
-                myTxtStr: "我", oppTxtStr: "對手", myTurn: "貼 輪到你了!", botThinking: "🤖 思考中...", oppTurn: " 的回合...",
-                draw: "🤝 平局 🤝", win: "🎉 勝利 🎉", lose: "😭 失敗 😭", botLose: "😭 機器人獲勝...", winMsg: "獲勝!",
-                surrenderAlert: "確定要投降嗎？", oppSurrenderAlert: "對手已投降！", connClosed: "連接已斷開。", botSurrenderMsg: "🤖 計算勝率為0%... 我投降。",
-                connectingBtn: "連接中...",
-                errNotFound: "找不到對手。請檢查房號或對手是否已離開。",
-                errNetwork: "網路錯誤。(請檢查防火牆/VPN)",
-                errGeneric: "連接失敗。請重試。",
-                errTimeout: "連接超時！(被防火牆攔截或對手已離開)"
             }
         };
 
@@ -329,14 +265,11 @@
         const navLang = navigator.language.toLowerCase();
         if (navLang.startsWith('ko')) sysLang = 'ko';
         else if (navLang.startsWith('ja')) sysLang = 'ja';
-        else if (navLang.includes('tw') || navLang.includes('hk') || navLang === 'zh-hant') sysLang = 'zh-TW';
-        else if (navLang.startsWith('zh')) sysLang = 'zh-CN';
         
-        let t = i18n[sysLang];
+        let t = i18n[sysLang] || i18n['en'];
 
         function applyLanguage() {
             document.documentElement.lang = sysLang;
-
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (t[key]) {
@@ -361,7 +294,7 @@
         }
 
         function changeLanguage(lang) {
-            sysLang = lang; t = i18n[sysLang];
+            sysLang = lang; t = i18n[sysLang] || i18n['en'];
             applyLanguage();
             
             if (isBotMode) {
@@ -383,7 +316,6 @@
         let myNickname = "", oppNickname = "";
         let peer = null, conn = null, isHost = false;
         let isBotMode = false; 
-        
         let botLevel = 1; 
         let connectionTimeoutId = null; 
 
@@ -417,19 +349,18 @@
         const categories = [...upperCategories, ...lowerCategories];
         let myScores = {}, oppScores = {};
 
-        // ⭐⭐⭐ [3D 주사위 연출 코어 시스템] ⭐⭐⭐
         let dice3DApps = []; 
-        let diceTextures = {};
+        let diceTextures = {}; 
+        let oppDiceTextures = {}; 
 
-        // 6개 주사위 면 무광 고정 텍스처 프리 컴파일러
         function preRenderDiceTextures() {
             const dotsLayout = [1, 2, 3, 4, 5, 6];
             dotsLayout.forEach(dots => {
                 const canvas = document.createElement('canvas');
                 canvas.width = 256; canvas.height = 256;
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#fdfdfd'; ctx.fillRect(0, 0, 256, 256);
-                ctx.fillStyle = '#1e469c';
+                ctx.fillStyle = '#fdfdfd'; ctx.fillRect(0, 0, 256, 256); 
+                ctx.fillStyle = '#1e469c'; 
                 const center = 128, low = 72, high = 184, radius = 22;
                 function drawDot(x, y) { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
                 if (dots === 1) { drawDot(center, center); }
@@ -443,7 +374,27 @@
             });
         }
 
-        // 수학적으로 외곽 라인만 라운딩 처리한 큐브 빌더
+        function preRenderOppDiceTextures() {
+            const dotsLayout = [1, 2, 3, 4, 5, 6];
+            dotsLayout.forEach(dots => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffc0cb'; ctx.fillRect(0, 0, 256, 256); 
+                ctx.fillStyle = '#ff0000'; 
+                const center = 128, low = 72, high = 184, radius = 22;
+                function drawDot(x, y) { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
+                if (dots === 1) { drawDot(center, center); }
+                else if (dots === 2) { drawDot(low, low); drawDot(high, high); }
+                else if (dots === 3) { drawDot(low, low); drawDot(center, center); drawDot(high, high); }
+                else if (dots === 4) { drawDot(low, low); drawDot(low, high); drawDot(high, low); drawDot(high, high); }
+                else if (dots === 5) { drawDot(low, low); drawDot(low, high); drawDot(center, center); drawDot(high, low); drawDot(high, high); }
+                else if (dots === 6) { drawDot(low, low); drawDot(low, center); drawDot(low, high); drawDot(high, low); drawDot(high, center); drawDot(high, high); }
+                const texture = new THREE.CanvasTexture(canvas);
+                oppDiceTextures[dots] = new THREE.MeshLambertMaterial({ map: texture });
+            });
+        }
+
         function createPerfectRoundedCube(size, radius, segments) {
             const geometry = new THREE.BoxGeometry(size, size, size, segments, segments, segments);
             const position = geometry.attributes.position;
@@ -463,7 +414,6 @@
             return geometry;
         }
 
-        // 각 눈에 매칭되는 각도 매핑 테이블
         const faceRotations = {
             1: { x: 0, y: 0 },
             2: { x: Math.PI / 2, y: 0 },
@@ -473,69 +423,54 @@
             6: { x: 0, y: Math.PI }
         };
 
-        // 개별 3D 독립 인스턴스 활성화
-        // 개별 3D 독립 인스턴스 활성화 (크기 및 감속 계수 수정)
-function initSingle3DDice(boxId, index) {
-    const box = document.getElementById(boxId);
-    const size = box.clientWidth || 78; // 1.2배 커진 크기 반영
-    
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
-    camera.position.z = 5.8; // 주사위가 화면에 꽉 차고 뚜렷하게 보이도록 카메라 밀착
+        function initSingle3DDice(boxId, index) {
+            const box = document.getElementById(boxId);
+            const size = box.clientWidth || 78; 
+            
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+            camera.position.z = 5.8; 
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(size, size);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    box.appendChild(renderer.domElement);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(size, size);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            box.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); scene.add(ambientLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.25); dirLight.position.set(5, 10, 7); scene.add(dirLight);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.25); dirLight.position.set(5, 10, 7); scene.add(dirLight);
 
-    const materials = [
-        diceTextures[3], diceTextures[4], diceTextures[2], diceTextures[5], diceTextures[1], diceTextures[6]
-    ];
+            const materials = [
+                diceTextures[3], diceTextures[4], diceTextures[2], diceTextures[5], diceTextures[1], diceTextures[6]
+            ];
 
-    const geometry = createPerfectRoundedCube(2.4, 0.22, 16);
-    const mesh = new THREE.Mesh(geometry, materials);
-    scene.add(mesh);
+            const geometry = createPerfectRoundedCube(2.4, 0.22, 16);
+            const mesh = new THREE.Mesh(geometry, materials);
+            scene.add(mesh);
 
-    mesh.rotation.x = 0.6; mesh.rotation.y = 0.6;
+            mesh.rotation.x = 0.6; mesh.rotation.y = 0.6;
 
-    let appObj = {
-        mesh: mesh, renderer: renderer, scene: scene, camera: camera,
-        targetX: 0.6, targetY: 0.6, isAnimating: true
-    };
-    dice3DApps[index] = appObj;
+            let appObj = {
+                mesh: mesh, renderer: renderer, scene: scene, camera: camera,
+                targetX: 0.6, targetY: 0.6, isAnimating: true
+            };
+            dice3DApps[index] = appObj;
 
-    function renderTick() {
-        if(appObj.isAnimating) {
-            // 감속 계수를 0.08에서 0.18로 변경하여 훨씬 가볍고 경쾌하게 착 멈추도록 수정
-            mesh.rotation.x += (appObj.targetX - mesh.rotation.x) * 0.18;
-            mesh.rotation.y += (appObj.targetY - mesh.rotation.y) * 0.18;
+            function renderTick() {
+                if(appObj.isAnimating) {
+                    mesh.rotation.x += (appObj.targetX - mesh.rotation.x) * 0.18;
+                    mesh.rotation.y += (appObj.targetY - mesh.rotation.y) * 0.18;
+                }
+                renderer.render(scene, camera);
+                requestAnimationFrame(renderTick);
+            }
+            renderTick();
         }
-        renderer.render(scene, camera);
-        requestAnimationFrame(renderTick);
-    }
-    renderTick();
-}
 
-// 난수 축 기반 3D 트위스트 회전 메커니즘 개시 (가벼운 롤링 연출)
-function animate3DDiceRoll(index, finalValue) {
-    const app = dice3DApps[index];
-    if (!app) return;
-    // 회전 바퀴 수를 늘려 공중에서 팽그르르 더 가볍게 도는 느낌 연출
-    const extraRollsX = (Math.floor(Math.random() * 3) + 4) * Math.PI * 2;
-    const extraRollsY = (Math.floor(Math.random() * 3) + 4) * Math.PI * 2;
-    app.targetX = faceRotations[finalValue].x + extraRollsX;
-    app.targetY = faceRotations[finalValue].y + extraRollsY;
-}
-
-        // 난수 축 기반 3D 트위스트 회전 메커니즘 개시
         function animate3DDiceRoll(index, finalValue) {
             const app = dice3DApps[index];
             if (!app) return;
-            const extraRollsX = (Math.floor(Math.random() * 2) + 3) * Math.PI * 2;
-            const extraRollsY = (Math.floor(Math.random() * 2) + 3) * Math.PI * 2;
+            const extraRollsX = (Math.floor(Math.random() * 3) + 4) * Math.PI * 2;
+            const extraRollsY = (Math.floor(Math.random() * 3) + 4) * Math.PI * 2;
             app.targetX = faceRotations[finalValue].x + extraRollsX;
             app.targetY = faceRotations[finalValue].y + extraRollsY;
         }
@@ -550,7 +485,7 @@ function animate3DDiceRoll(index, finalValue) {
                 const dateStr = new Intl.DateTimeFormat(sysLang, {
                     year: 'numeric', month: 'short', day: 'numeric',
                     hour: 'numeric', minute: 'numeric'
-                }).format(new Date()).replace(/[^0-9a-zA-Z가-힣一-龥ぁ-んァ-ン]/g, '_').replace(/_+/g, '_');
+                }).format(new Date()).replace(/[^0-9a-zA-Z가-힣]/g, '_').replace(/_+/g, '_');
                 
                 link.download = `Yacht_Score_${myNickname}_${dateStr}.png`;
                 link.href = canvas.toDataURL('image/png');
@@ -741,7 +676,7 @@ function animate3DDiceRoll(index, finalValue) {
             if(connectionTimeoutId) clearTimeout(connectionTimeoutId);
             
             switchView('game-view');
-            document.getElementById('gameover-overlay').classList.remove('show');
+            document.getElementById('gameover-overlay').classList.remove('show'); // 오타 패치
             document.getElementById('actionButtons').style.display = 'flex'; 
             document.getElementById('p1Name').innerText = t.myTxtStr; 
             document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
@@ -749,14 +684,9 @@ function animate3DDiceRoll(index, finalValue) {
             lastScoredId = null; 
             
             if (Object.keys(diceTextures).length === 0) preRenderDiceTextures();
+            if (Object.keys(oppDiceTextures).length === 0) preRenderOppDiceTextures(); 
             
             initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
-            
-            const connectBtn = document.getElementById('connectBtn');
-            if(connectBtn) {
-                connectBtn.disabled = false;
-                connectBtn.innerText = t.startBtn;
-            }
         }
 
         function initDiceUI() {
@@ -768,12 +698,10 @@ function animate3DDiceRoll(index, finalValue) {
                 d.id = 'die-3d-'+i;
                 d.onclick = () => toggleHold(i); 
                 container.appendChild(d);
-                
                 initSingle3DDice('die-3d-'+i, i);
             }
         }
 
-        // 💡 통합된 단일 테이블 구조에 맞게 보드 초기화
         function initScoreBoard() {
             const tableBody = document.getElementById('scoreTableBody');
             tableBody.innerHTML = ''; 
@@ -786,10 +714,8 @@ function animate3DDiceRoll(index, finalValue) {
                 <td id="opp-${cat.id}" class="score-cell"></td></tr>`;
             };
 
-            // 1. 상단 항목 삽입
             upperCategories.forEach(cat => tableBody.innerHTML += createRow(cat));
 
-            // 2. 상단 바로 밑에 합계 및 보너스 행 결합
             tableBody.innerHTML += `
                 <tr class="bonus-row">
                     <td class="cat-name" style="background-color: #ebf5fb;"><i class="fa-solid fa-calculator"></i> ${t.subtotalTxt}</td>
@@ -803,10 +729,8 @@ function animate3DDiceRoll(index, finalValue) {
                 </tr>
             `;
 
-            // 3. 하단 항목 이어서 삽입
             lowerCategories.forEach(cat => tableBody.innerHTML += createRow(cat));
             
-            // 기존 데이터 복구 레이어
             categories.forEach(cat => {
                 let m = document.getElementById(`my-${cat.id}`), o = document.getElementById(`opp-${cat.id}`);
                 if(oppScores[cat.id] !== undefined) { o.innerText = oppScores[cat.id]; o.className = 'score-cell filled'; }
@@ -942,17 +866,32 @@ function animate3DDiceRoll(index, finalValue) {
         }
         
         function botDecideHolds() {
-            let mistake = getMistakeChance();
-            if (Math.random() * 100 < mistake) {
-                for(let i=0; i<5; i++) { isHeld[i] = Math.random() > 0.5; }
-            } else {
-                let counts = [0,0,0,0,0,0,0]; diceValues.forEach(d => counts[d]++);
-                let maxFreq = Math.max(...counts.slice(1)); 
-                let targetNum = counts.lastIndexOf(maxFreq);
-                for(let i=0; i<5; i++) { if (diffValue = targetNum) isHeld[i] = true; }
+    let mistake = getMistakeChance();
+    if (Math.random() * 100 < mistake) {
+        // 실수 확률 발동 시 무작위 홀드
+        for(let i=0; i<5; i++) { isHeld[i] = Math.random() > 0.5; }
+    } else {
+        // 1. 현재 주사위 눈의 빈도수 계산
+        let counts = [0, 0, 0, 0, 0, 0, 0]; 
+        diceValues.forEach(d => counts[d]++);
+        
+        // 2. 가장 많이 나온 주사위 눈(targetNum) 찾기
+        let maxFreq = 0;
+        let targetNum = 1;
+        for (let num = 1; num <= 6; num++) {
+            if (counts[num] > maxFreq) {
+                maxFreq = counts[num];
+                targetNum = num;
             }
-            updateUI();
         }
+        
+        // 3. 목표 숫자인 주사위만 정확하게 Keep (기존 Hold 갱신)
+        for(let i=0; i<5; i++) { 
+            isHeld[i] = (diceValues[i] === targetNum); 
+        }
+    }
+    updateUI();
+}
 
         function botSelectScore() {
             try {
@@ -978,12 +917,11 @@ function animate3DDiceRoll(index, finalValue) {
                     lastScoredId = `opp-${bestCat}`;
                 }
             } catch (e) {
-                for (let cat of categories) { 
-                    if (oppScores[cat.id] === undefined) { 
-                        oppScores[cat.id] = 0; 
-                        lastScoredId = `opp-${cat.id}`;
-                        break; 
-                    } 
+                // 예외 안전 처리 루프 변경
+                const remainCats = categories.filter(c => oppScores[c.id] === undefined);
+                if(remainCats.length > 0) {
+                    oppScores[remainCats[0].id] = 0;
+                    lastScoredId = `opp-${remainCats[0].id}`;
                 }
             }
             isMyTurn = true; resetTurnData(); updateUI(); checkGameEnd();
@@ -1009,13 +947,21 @@ function animate3DDiceRoll(index, finalValue) {
             return { upper, bonus, total };
         }
 
-        // 💡 UI 업데이트 함수 동기화
         function updateUI() {
+            const isOppTurn = !isMyTurn; 
+
             for(let i=0; i<5; i++) {
                 let box = document.getElementById('die-3d-'+i);
-                if (box) {
+                let app = dice3DApps[i];
+                if (box && app) {
                     if (isHeld[i]) box.className = 'dice-3d-box held';
                     else box.className = 'dice-3d-box';
+
+                    const currentMaterials = isOppTurn ? 
+                        [oppDiceTextures[3], oppDiceTextures[4], oppDiceTextures[2], oppDiceTextures[5], oppDiceTextures[1], oppDiceTextures[6]] :
+                        [diceTextures[3], diceTextures[4], diceTextures[2], diceTextures[5], diceTextures[1], diceTextures[6]];
+                    
+                    app.mesh.material = currentMaterials; 
                 }
             }
 
@@ -1023,9 +969,11 @@ function animate3DDiceRoll(index, finalValue) {
             if(isMyTurn) {
                 turnElement.innerText = isRolling ? "..." : t.myTurn;
                 turnElement.style.color = "#2ecc71";
+                turnElement.classList.remove('opp-turn');
             } else {
                 turnElement.innerText = isBotMode ? t.botThinking : `⌛ ${oppNickname}${t.oppTurn}`;
                 turnElement.style.color = "#e74c3c";
+                turnElement.classList.add('opp-turn');
             }
             
             document.getElementById('rollBtn').disabled = !isMyTurn || rollsLeft <= 0 || isRolling;
@@ -1058,7 +1006,6 @@ function animate3DDiceRoll(index, finalValue) {
             document.getElementById('my-total').innerText = myRes.total;
             document.getElementById('opp-total').innerText = oppRes.total;
 
-            // 보너스 달성 시 스타일 피드백 보장
             const myBonusEl = document.getElementById('my-bonus-val');
             const oppBonusEl = document.getElementById('opp-bonus-val');
             if(myRes.upper >= 63) myBonusEl.className = 'score-cell filled bonus-achieved';
@@ -1113,9 +1060,6 @@ function animate3DDiceRoll(index, finalValue) {
             if (sysLang === 'ko' && !isDraw && !isBotWin) wText = `🎉 ${winner} 승리!`;
             
             document.getElementById('winnerText').innerText = wText;
-            
-            let myTxt = sysLang === 'ko' ? "나" : "Me";
-            let oppTxt = sysLang === 'ko' ? "상대" : "Opp";
             document.getElementById('finalScoreMsg').innerText = `${t.myTxtStr}: ${calculateScores(myScores).total} | ${t.oppTxtStr}: ${calculateScores(oppScores).total}`;
             
             amIWantRematch = false; isOppWantRematch = false;
@@ -1157,7 +1101,6 @@ function animate3DDiceRoll(index, finalValue) {
 
         function resetFullGame(starterNickname) { isMyTurn = (starterNickname === myNickname); startGame(); }
         
-      // 💡 2. 턴 및 주사위 리셋 함수 수정
         function resetTurnData() { 
             diceValues = [1,1,1,1,1]; 
             isHeld = [false,false,false,false,false]; 
@@ -1165,7 +1108,6 @@ function animate3DDiceRoll(index, finalValue) {
             
             for(let i=0; i<5; i++){
                 if(dice3DApps[i]){
-                    // 💡 [수정] 주사위를 초기화할 때도 1이 바로 노출되지 않고 대각선 정육면체 뷰를 유지하도록 타겟 각도 세팅
                     dice3DApps[i].targetX = 0.65;
                     dice3DApps[i].targetY = 0.75;
                     dice3DApps[i].targetZ = 0.50;
