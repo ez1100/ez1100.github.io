@@ -22,7 +22,7 @@
         h2 { 
 /* 💡 clamp(최소크기, 유연한크기, 최대크기) */
     /* 모바일 최소 24px, 화면 비례 6.5vw로 커지다가, PC에서는 최대 36px까지만 커지도록 제한 */
-    font-size: clamp(24px, 6.5vw, 80px); 
+    font-size: clamp(24px, 6.5vw, 65px); 
     
     margin: 0; 
     display: inline-block; 
@@ -1157,12 +1157,18 @@ function animate3DDiceRoll(index, finalValue) {
 
         function resetFullGame(starterNickname) { isMyTurn = (starterNickname === myNickname); startGame(); }
         
+      // 💡 2. 턴 및 주사위 리셋 함수 수정
         function resetTurnData() { 
-            diceValues = [1,1,1,1,1]; isHeld = [false,false,false,false,false]; rollsLeft = 3; 
+            diceValues = [1,1,1,1,1]; 
+            isHeld = [false,false,false,false,false]; 
+            rollsLeft = 3; 
+            
             for(let i=0; i<5; i++){
                 if(dice3DApps[i]){
-                    dice3DApps[i].targetX = faceRotations[1].x;
-                    dice3DApps[i].targetY = faceRotations[1].y;
+                    // 💡 [수정] 주사위를 초기화할 때도 1이 바로 노출되지 않고 대각선 정육면체 뷰를 유지하도록 타겟 각도 세팅
+                    dice3DApps[i].targetX = 0.65;
+                    dice3DApps[i].targetY = 0.75;
+                    dice3DApps[i].targetZ = 0.50;
                 }
             }
         }
