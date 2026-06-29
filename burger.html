@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>위대한 버거 - 레이아웃 업데이트 V17</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DungGeunMo&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            font-family: 'DungGeunMo', monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 177.78vh; 
+            max-height: 56.25vw;
+            background-color: #3e2723;
+            border: 6px solid #2d1f1d;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #top-interface {
+            width: 100%;
+            height: 23%;
+            background-color: #2d1f1d;
+            border-bottom: 4px solid #1a1110;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2vw;
+        }
+
+        #receipt-zone {
+            display: flex;
+            gap: 1vw;
+            flex-grow: 1;
+            height: 100%;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* ◀ [수정] 업로드한 이미지 구조와 완벽히 일치하는 가로 분할 영수증 레이아웃 */
+        .receipt {
+            width: 15vw;
+            max-width: 220px;
+            background-color: #f9f9f9;
+            border-bottom: 6px dashed #ddd;
+            padding: 0.6vw;
+            font-size: 0.8vw;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border-radius: 2px;
+        }
+
+        .receipt-header {
+            font-weight: bold;
+            border-bottom: 1px solid #e0e0e0;
+            color: #444;
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 2px;
+            font-size: 0.85vw;
+        }
+
+        /* 내부 가로 분할 컨테이너 (왼쪽 도면박스 | 오른쪽 메뉴텍스트) */
+        .receipt-body {
+            display: flex;
+            align-items: center;
+            padding: 0.6vw 0;
+            gap: 0.8vw;
+            flex-grow: 1;
+        }
+
+        /* 왼쪽: 네모나고 둥근 모서리의 레시피 도면 박스 */
+        .mini-recipe-blueprint {
+            width: 4.5vw;
+            height: 4.5vw;
+            max-width: 65px;
+            max-height: 65px;
+            background: #e0e0e0;
+            border: 2px solid #d5d5d5;
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column; /* 위에서부터 순서대로 쌓이도록 세팅 */
+            justify-content: center;
+            gap: 2px;
+        }
+
+        /* 도면 내부의 각 재료 컬러 선 두께 및 라운드 조정 */
+        .mini-layer-line {
+            width: 100%;
+            height: 7px;
+            border-radius: 3px;
+        }
+
+        /* 오른쪽: 메뉴명과 세트 정보 세로 정렬 */
+        .receipt-text-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .info-menu-title {
+            font-weight: bold;
+            color: #d32f2f;
+            font-size: 0.95vw;
+        }
+
+        .info-set-tag {
+            color: #e53935;
+            font-size: 0.8vw;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 2px;
+            display: inline-block;
+            width: fit-content;
+            margin: 0 auto;
+        }
+
+        /* 하단 타이머 바 조정 */
+        .receipt-timer-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+        .receipt-timer-fill { width: 100%; height: 100%; background: #ff9800; transition: width 0.2s linear; }
+
+        #stage-status {
+            min-width: 18vw;
+            background: #111;
+            border: 2px solid #555;
+            border-radius: 6px;
+            padding: 0.6vw 0.8vw;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.85vw;
+        }
+
+        #control-btn-group { display: flex; gap: 4px; margin-top: 3px; width: 100%; }
+
+        .ctrl-action-btn {
+            flex: 1; color: white; border: none; border-radius: 3px; padding: 3px 0;
+            font-size: 0.7vw; cursor: pointer; font-weight: bold; text-align: center;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.5);
+        }
+        .ctrl-action-btn:active { transform: translateY(1px); box-shadow: none; }
+        .btn-menu-guide { background: #2196f3; }
+        .btn-pause { background: #ff9800; }
+        .btn-gameover { background: #e53935; }
+
+        #middle-machinery {
+            width: 100%; height: 27%; background: #8d6e63; display: flex;
+            justify-content: space-around; align-items: center; padding: 0 4vw; border-bottom: 4px solid #5d4037;
+        }
+
+        .machine-station {
+            width: 25%; height: 80%; border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: inset 0 4px 6px rgba(0,0,0,0.3), 0 6px 0 rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        #fryer-machine { background: #b0bec5; border: 4px solid #78909c; }
+        #grill-machine { background: #424242; border: 4px solid #212121; }
+        #soda-machine { background: #eceff1; border: 4px solid #cfd8dc; }
+
+        .helper-badge {
+            position: absolute; bottom: 4px; right: 4px;
+            background: #ab47bc; color: white; font-size: 0.65vw; padding: 1px 4px;
+            border-radius: 3px; font-weight: bold; display: none;
+        }
+
+        .machine-title { font-weight: bold; font-size: 0.85vw; margin-top: 2px; }
+        .machine-status { font-size: 0.75vw; font-weight: bold; margin-top: 1px; }
+
+        #bottom-kitchen { width: 100%; height: 50%; background: #efebe9; display: flex; padding: 1vw; gap: 1.5vw; }
+
+        #left-assembly {
+            width: 45%; height: 100%; background: #d7ccc8; border: 4px solid #bcaaa4;
+            border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;
+        }
+
+        #tray {
+            width: 90%; height: 70%; background: #fff; border: 3px dashed #78909c;
+            border-radius: 6px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0.8vw; cursor: grab;
+        }
+
+        #burger-zone { width: 40%; height: 100%; position: relative; margin: 0 auto; }
+
+        .side-slot {
+            width: 4.5vw; height: 4.5vw; max-width: 65px; max-height: 65px;
+            border: 2px dashed #cfd8dc; border-radius: 4px; background: rgba(0,0,0,0.02);
+            display: flex; align-items: center; justify-content: center; font-size: 2.5vw;
+        }
+
+        .burger-layer {
+            position: absolute; left: 50%; transform: translateX(-50%); width: 100%; height: 22%;
+            background-size: contain; background-repeat: no-repeat; background-position: center; animation: dropLayer 0.1s ease-out;
+        }
+
+        @keyframes dropLayer {
+            from { transform: translateX(-50%) translateY(-40px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        #right-ingredients {
+            width: 55%; background: #4e342e; border-radius: 8px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6vw; padding: 0.8vw;
+        }
+
+        .ingredient-btn {
+            background: #fff8e1; border: 3px solid #ffe082; border-radius: 6px; box-shadow: 0 4px 0 #ffb300;
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 0.6vw 2px; font-size: 0.8vw; font-weight: bold; position: relative; height: 100%;
+        }
+        .ingredient-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #ffb300; }
+        .ingredient-icon { font-size: 2.5vw; }
+
+        .stock-badge {
+            position: absolute; top: -4px; right: -4px; background: #e53935; color: white;
+            border-radius: 10px; padding: 1px 5px; font-size: 0.7vw; font-weight: bold; border: 1.5px solid #fff;
+        }
+        .stock-badge.empty { background: #757575; }
+
+        .progress-bar {
+            width: 80%; height: 8px; background: #eee; border-radius: 4px;
+            margin-top: 4px; overflow: hidden; border: 1px solid #ccc; display: none;
+        }
+        .progress-fill { width: 0%; height: 100%; background: #4caf50; }
+
+        #toast {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85); color: white; padding: 1vw 2vw; border-radius: 8px;
+            font-size: 1.3vw; display: none; z-index: 400; text-align: center;
+        }
+
+        .trash-btn {
+            position: absolute; bottom: 4px; right: 4px; background: #d32f2f; color: white; border: none;
+            padding: 2px 6px; font-size: 0.7vw; border-radius: 4px; cursor: pointer;
+        }
+
+        .game-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200; color: #fff; text-align: center;
+        }
+
+        .start-btn {
+            background: #4caf50; color: white; border: 4px solid #81c784; padding: 1vw 3vw;
+            font-size: 1.5vw; cursor: pointer; border-radius: 8px; box-shadow: 0 6px 0 #388e3c;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+        }
+        .start-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #388e3c; }
+
+        .settlement-card {
+            width: 25vw; min-width: 340px; background: #f5f5f5; color: #333;
+            border-radius: 4px; padding: 1.5vw; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-bottom: 6px dashed #ccc; display: flex; flex-direction: column; gap: 0.8vw;
+        }
+        .settlement-row { display: flex; justify-content: space-between; font-size: 1vw; border-bottom: 1px dashed #ddd; padding-bottom: 2px; }
+
+        .shop-item {
+            display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px;
+            border-radius: 4px; border: 2px solid #ddd; margin-top: 2px; text-align: left;
+        }
+        .shop-buy-btn { background: #ab47bc; color: white; border: none; padding: 4px 8px; font-size: 0.8vw; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .shop-buy-btn:disabled { background: #bdbdbd; cursor: not-allowed; }
+
+        #recipe-book-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60%; height: 75%; background: rgba(245, 245, 245, 0.98); border: 6px solid #4e342e;
+            border-radius: 10px; box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+            z-index: 500; display: none; flex-direction: column; padding: 1.5vw; color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <div id="overlay-screen" class="game-overlay">
+            <h1 style="color: #ffeb3b; font-size: 3.5vw; margin: 0 0 5px 0; text-shadow: 3px 3px 0 #000;">위대한 버거 주방</h1>
+            <p style="color: #ccc; margin: 0 0 20px 0; font-size: 1.1vw;">Space 키 또는 버튼을 누르면 전체화면 모드로 작동합니다.</p>
+            <button class="start-btn" onclick="toggleFullScreen(); triggerCountdown();">▶ 주방 가동 [Space]</button>
+        </div>
+
+        <div id="recipe-book-modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #333; padding-bottom:4px; margin-bottom:10px;">
+                <h2 style="margin:0; font-size:1.6vw; color:#d32f2f;">📖 버거 백과사전 (조립 레시피)</h2>
+                <button onclick="closeRecipeBook()" style="background:#e53935; color:white; border:none; padding:4px 10px; border-radius:4px; font-weight:bold; cursor:pointer;">창 닫기 X</button>
+            </div>
+            <div style="flex-grow:1; width:100%; height:100%; display:flex; justify-content:center; align-items:center; overflow:hidden; border-radius:4px; border:2px solid #ddd;">
+                <img src="http://googleusercontent.com/image_generation_content/0" alt="Burger Guide" style="width:100%; height:100%; object-fit:contain;">
+            </div>
+        </div>
+
+        <div id="top-interface">
+            <div id="receipt-zone"></div>
+            
+            <div id="stage-status">
+                <div style="color: #ffeb3b;">⏱️ 남은 시간: <span id="stage-timer">90</span>초</div>
+                <div style="color: #00ff00;">💰 순 이 익: <span id="stage-score">0</span>원</div>
+                <div style="font-size: 0.7vw; color: #aaa;">총수입: <span id="earn-val">0</span> | 벌금: <span id="penalty-val">0</span></div>
+                <div id="control-btn-group">
+                    <button class="ctrl-action-btn btn-menu-guide" onclick="openRecipeBook()">📖 메뉴</button>
+                    <button class="ctrl-action-btn btn-pause" onclick="togglePauseGame()">⏸️ 정지</button>
+                    <button class="ctrl-action-btn btn-gameover" onclick="forceGameOver()">❌ 종료</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="middle-machinery">
+            <div id="fryer-machine" class="machine-station" onclick="handleFryer()">
+                <div id="fryer-emoji" style="font-size: 2.5vw;">🍟</div>
+                <div class="machine-title" style="color:#263238;">감자 튀김기 (자동조리)</div>
+                <div id="fryer-status" class="machine-status" style="color:#37474f;">대기중</div>
+                <div class="progress-bar" id="fryer-progress"><div class="progress-fill" id="fryer-fill"></div></div>
+            </div>
+
+            <div id="grill-machine" class="machine-station" onclick="handleGrill()">
+                <div id="grill-emoji" style="font-size: 2.5vw;">🥩</div>
+                <div class="machine-title" style="color:#fff;">패티 그릴 (4장굽기)</div>
+                <div id="grill-status" class="machine-status" style="color:#ffeb3b;">대기중</div>
+                <div class="progress-bar" id="grill-progress"><div class="progress-fill" id="grill-fill"></div></div>
+            </div>
+
+            <div id="soda-machine" class="machine-station" onclick="handleSoda()">
+                <div id="soda-emoji" style="font-size: 2.5vw;">🥤</div>
+                <div class="machine-title" style="color:#263238;">음료 디스펜서</div>
+                <div id="soda-status" class="machine-status" style="color:#0288d1;">대기중</div>
+                <div class="progress-bar" id="soda-progress"><div class="progress-fill" id="soda-fill"></div></div>
+                <div id="soda-helper-badge" class="helper-badge">🤖 알바 대기중</div>
+            </div>
+        </div>
+
+        <div id="bottom-kitchen">
+            <div id="left-assembly">
+                <div id="tray" draggable="false" onmousedown="startDrag(event)" onmouseup="endDrag(event)">
+                    <div id="tray-fries" class="side-slot"></div>
+                    <div id="burger-zone"></div>
+                    <div id="tray-soda" class="side-slot"></div>
+                </div>
+                <div style="font-size:0.75vw; color:#555; margin-top:5px; font-weight: bold;">
+                    ▲ 위로 드래그: 손님 서빙 | ▼ 아래로 드래그: 전부 버리기
+                </div>
+                <button class="trash-btn" onclick="clearTray()">🗑️ 비우기</button>
+            </div>
+
+            <div id="right-ingredients">
+                <div class="ingredient-btn" onclick="addLayer('bun-bottom')"><div class="ingredient-icon">🍞</div><div>바닥빵</div></div>
+                <div class="ingredient-btn" onclick="addLayer('lettuce')"><div class="ingredient-icon">🥬</div><div>양상추</div></div>
+                <div class="ingredient-btn" onclick="addLayer('cheese')"><div class="ingredient-icon">🧀</div><div>치즈</div></div>
+                <div class="ingredient-btn" onclick="addLayer('bun-top')"><div class="ingredient-icon">🥯</div><div>뚜껑빵</div></div>
+                
+                <div class="ingredient-btn" onclick="addPattyFromStock()"><div class="stock-badge" id="patty-stock-badge">0</div><div class="ingredient-icon">🥩</div><div>패티사용</div></div>
+                <div class="ingredient-btn" onclick="addLayer('tomato')"><div class="ingredient-icon">🍅</div><div>토마토</div></div>
+                <div class="ingredient-btn" onclick="addLayer('pickle')"><div class="ingredient-icon">🥒</div><div>피클</div></div>
+                <div class="ingredient-btn" onclick="showMachineryToast()"><div class="ingredient-icon">⚙️</div><div>기계사용</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">정답!</div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration) {
+            try {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+        function soundClick() { playTone(600, 'square', 0.08); }
+        function soundSuccess() { playTone(523.25, 'sine', 0.1); setTimeout(() => playTone(659.25, 'sine', 0.15), 100); }
+        function soundFail() { playTone(140, 'sawtooth', 0.3); }
+        function soundSizzle() { playTone(200, 'triangle', 0.4); }
+
+        let stageTime = 90; 
+        let totalEarn = 0, totalPenalty = 0, netProfit = 0;
+        let gameActive = false, isPaused = false; 
+        let overlayMode = 'start'; 
+
+        let currentBurger = [];
+        let trayHasFries = false, trayHasSoda = false;
+        let activeReceipts = [];
+        let stockPatty = 0;
+        let autoSodaHelperHired = false;
+
+        let grillState = 'empty', grillProgress = 0, grillInterval = null;
+        let fryerState = 'empty', fryerProgress = 0, fryerInterval = null;
+        let sodaState = 'empty', sodaProgress = 0, sodaInterval = null;
+
+        const MENU_TEMPLATES = [
+            { baseMenu: "치즈버거", isSet: false, burgerIngredients: ['bun-top', 'cheese', 'patty', 'bun-bottom'], requiresFries: false, requiresSoda: false, price: 5000, limit: 35 },
+            { baseMenu: "클래식 토마토버거", isSet: false, burgerIngredients: ['bun-top', 'lettuce', 'tomato', 'patty', 'bun-bottom'], requiresFries: false, requiresSoda: false, price: 6500, limit: 40 },
+            { baseMenu: "피클 버거세트", isSet: true, burgerIngredients: ['bun-top', 'cheese', 'patty', 'pickle', 'bun-bottom'], requiresFries: true, requiresSoda: true, price: 8800, limit: 50 },
+            { baseMenu: "프리미엄 올인원세트", isSet: true, burgerIngredients: ['bun-top', 'lettuce', 'pickle', 'tomato', 'cheese', 'patty', 'bun-bottom'], requiresFries: true, requiresSoda: true, price: 10500, limit: 55 }
+        ];
+
+        const SVG_LAYERS = {
+            'bun-bottom': `<svg viewBox="0 0 120 30"><ellipse cx="60" cy="15" rx="55" ry="10" fill="#d7ccc8" stroke="#8d6e63" stroke-width="2.5"/></svg>`,
+            'lettuce': `<svg viewBox="0 0 120 30"><ellipse cx="60" cy="16" rx="52" ry="8" fill="#4caf50"/></svg>`,
+            'patty': `<svg viewBox="0 0 120 30"><ellipse cx="60" cy="14" rx="54" ry="11" fill="#5d4037" stroke="#3e2723" stroke-width="2.5"/></svg>`,
+            'cheese': `<svg viewBox="0 0 120 30"><path d="M5,10 L115,8 L105,22 Z" fill="#ffca28" stroke="#ffa000" stroke-width="2"/></svg>`,
+            'bun-top': `<svg viewBox="0 0 120 30"><path d="M5,20 Q60,-5 115,20 Z" fill="#bcaaa4" stroke="#8d6e63" stroke-width="2.5"/></svg>`,
+            'tomato': `<svg viewBox="0 0 120 30"><ellipse cx="60" cy="15" rx="50" ry="9" fill="#e53935" stroke="#b71c1c" stroke-width="1.5"/></svg>`,
+            'pickle': `<svg viewBox="0 0 120 30"><ellipse cx="40" cy="15" rx="18" ry="6" fill="#2e7d32"/><ellipse cx="80" cy="16" rx="18" ry="6" fill="#2e7d32"/></svg>`
+        };
+
+        const BLUEPRINT_COLORS = {
+            'bun-top': '#bcaaa4', 'lettuce': '#4caf50', 'tomato': '#e53935', 'pickle': '#2e7d32', 'cheese': '#ffca28', 'patty': '#5d4037', 'bun-bottom': '#d7ccc8'
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!gameActive && overlayMode === 'start') { toggleFullScreen(); triggerCountdown(); }
+            }
+            if (e.code === 'KeyP' || e.code === 'Escape') {
+                e.preventDefault();
+                if (gameActive || isPaused) togglePauseGame();
+            }
+        });
+
+        function toggleFullScreen() {
+            const container = document.getElementById('game-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => console.log(err.message));
+            }
+        }
+
+        function openRecipeBook() {
+            if(!gameActive || isPaused) return;
+            soundClick(); gameActive = false;
+            document.getElementById('recipe-book-modal').style.display = 'flex';
+        }
+        function closeRecipeBook() {
+            soundClick(); document.getElementById('recipe-book-modal').style.display = 'none'; gameActive = true;
+        }
+
+        function togglePauseGame() {
+            if (overlayMode === 'end' || overlayMode === 'countdown') return;
+            soundClick();
+            const overlay = document.getElementById('overlay-screen');
+            if (!isPaused) {
+                isPaused = true; gameActive = false; overlayMode = 'paused';
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <h1 style="color: #ff9800; font-size: 4vw; margin: 0px 0px 10px 0px; text-shadow: 3px 3px 0 #000;">PAUSE</h1>
+                    <p style="color: #eee; margin: 0 0 20px 0; font-size: 1.1vw;">주방이 일시 정지되었습니다.</p>
+                    <button class="start-btn" onclick="togglePauseGame()" style="background:#ff9800; border-color:#ffb74d; box-shadow:0 5px 0 #e65100;">▶ 다시 가동 [P / Esc]</button>
+                `;
+            } else {
+                isPaused = false; gameActive = true; overlayMode = 'none'; overlay.style.display = 'none';
+            }
+        }
+
+        function forceGameOver() {
+            if(!gameActive && !isPaused) return;
+            if(confirm("정말로 오늘 영업을 여기서 즉시 마감하시겠습니까?")) {
+                gameActive = false; isPaused = false; triggerSettlement();
+            }
+        }
+
+        function triggerCountdown() {
+            if(overlayMode === 'countdown') return;
+            overlayMode = 'countdown';
+            const overlay = document.getElementById('overlay-screen');
+            let count = 3;
+            overlay.innerHTML = `<h1 id="cd-text" style="font-size: 8vw; color:#ffeb3b; text-shadow:4px 4px 0 #000; margin:0;">3</h1>`;
+            playTone(440, 'sine', 0.15);
+
+            const cdInterval = setInterval(() => {
+                count--;
+                const txt = document.getElementById('cd-text');
+                if(count > 0) { if(txt) txt.innerText = count; playTone(440, 'sine', 0.15); }
+                else if(count === 0) { if(txt) txt.innerText = "GO!"; playTone(880, 'sine', 0.3); }
+                else { clearInterval(cdInterval); overlay.style.display = 'none'; overlayMode = 'none'; startGameLoop(); }
+            }, 1000);
+        }
+
+        function startGameLoop() {
+            gameActive = true;
+            generateOrder(); generateOrder();
+            setInterval(() => { if(gameActive && !isPaused && activeReceipts.length < 4) generateOrder(); }, 6500);
+            setInterval(updateReceiptTimers, 200);
+            setInterval(runAutoSodaHelper, 1000);
+
+            const stageClock = setInterval(() => {
+                if(isPaused || !gameActive) return;
+                stageTime--;
+                document.getElementById('stage-timer').innerText = stageTime;
+                if(stageTime <= 0) { gameActive = false; clearInterval(stageClock); triggerSettlement(); }
+            }, 1000);
+
+            updateStockUI();
+        }
+
+        function runAutoSodaHelper() {
+            if(!gameActive || isPaused || !autoSodaHelperHired) return;
+            if(sodaState !== 'empty') return;
+            const hasSetOrder = activeReceipts.some(order => order.requiresSoda === true);
+            if(hasSetOrder) handleSoda(); 
+        }
+
+        function triggerSettlement() {
+            overlayMode = 'end';
+            soundSuccess();
+            const overlay = document.getElementById('overlay-screen');
+            overlay.style.display = 'flex';
+            if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+
+            overlay.innerHTML = `
+                <div class="settlement-card">
+                    <div style="text-align:center; font-size: 1.5vw; font-weight:bold; border-bottom: 2px solid #333; padding-bottom:6px;">🧾 매출 정산서 & 상점</div>
+                    <div class="settlement-row" style="margin-top:5px;"><span>💰 총 판매 수익:</span><span style="color:#2e7d32; font-weight:bold;">+ ${totalEarn.toLocaleString()} 원</span></div>
+                    <div class="settlement-row"><span>⚠️ 타임오버 패널티:</span><span style="color:#c62828;">- ${totalPenalty.toLocaleString()} 원</span></div>
+                    <div class="settlement-row" style="border-bottom:2px solid #333; padding-bottom:6px; font-size:1.3vw; font-weight:bold;">
+                        <span>💼 최종 보유 잔액:</span><span id="shop-balance-text" style="color:${netProfit >= 0 ? '#1b5e20' : '#b71c1c'}">${netProfit.toLocaleString()} 원</span>
+                    </div>
+                    
+                    <div style="font-weight:bold; font-size: 11px; color:#555; margin-top:4px;">🛒 주방 자동화 업그레이드 상점</div>
+                    
+                    <div class="shop-item">
+                        <div>
+                            <div style="font-size:12px; font-weight:bold;">🤖 음료 선추출 알바 고용</div>
+                            <div style="font-size:10px; color:#777;">가격: 13,000원 | 세트 주문 시 자동 음료수 추출</div>
+                        </div>
+                        <button class="shop-buy-btn" id="btn-buy-soda-helper" onclick="buySodaUpgrade()">고용하기</button>
+                    </div>
+
+                    <button class="start-btn" onclick="nextStageRestart()" style="font-size:14px; padding:8px; margin-top:8px; width:100%; background:#2196f3; border-color:#64b5f6; box-shadow:0 4px 0 #0d47a1;">⏩ 다음 스테이지 시작 (패티유지)</button>
+                </div>
+            `;
+            updateShopButtonsUI();
+        }
+
+        function buySodaUpgrade() {
+            if(netProfit >= 13000 && !autoSodaHelperHired) {
+                netProfit -= 13000; autoSodaHelperHired = true;
+                document.getElementById('soda-helper-badge').style.display = 'block';
+                soundSuccess();
+                document.getElementById('shop-balance-text').innerText = netProfit.toLocaleString() + " 원";
+                document.getElementById('stage-score').innerText = netProfit.toLocaleString();
+                updateShopButtonsUI();
+            } else { soundFail(); }
+        }
+
+        function updateShopButtonsUI() {
+            const btnSoda = document.getElementById('btn-buy-soda-helper');
+            if(!btnSoda) return;
+            if(autoSodaHelperHired) { btnSoda.innerText = "고용 완료"; btnSoda.disabled = true; }
+            else if(netProfit < 13000) btnSoda.disabled = true;
+        }
+
+        function nextStageRestart() {
+            soundClick(); stageTime = 90; totalEarn = 0; totalPenalty = 0; activeReceipts = [];
+            document.getElementById('receipt-zone').innerHTML = '';
+            clearTray(); recalcScores(); overlayMode = 'start';
+            const overlay = document.getElementById('overlay-screen');
+            overlay.innerHTML = `
+                <h1 style="color: #ffeb3b; font-size: 3.5vw; margin:0 0 5px 0; text-shadow: 3px 3px 0 #000;">다음 스테이지</h1>
+                <p style="color: #ccc; margin:0 0 20px 0; font-size: 1.1vw;">새로워진 박스 도면 주문서를 파악하고 경영하세요!</p>
+                <button class="start-btn" onclick="toggleFullScreen(); triggerCountdown();">▶ 다음 라운드 가동 [Space]</button>
+            `;
+        }
+
+        // ◀ [레이아웃 교체 핵심] 둥근 도면 박스를 왼쪽에 놓고 오른쪽 텍스트를 정렬하는 렌더러
+        function generateOrder() {
+            if(!gameActive) return;
+            const template = MENU_TEMPLATES[Math.floor(Math.random() * MENU_TEMPLATES.length)];
+            const id = 'rcpt_' + Date.now() + Math.floor(Math.random()*100);
+            const order = { ...template, id, remaining: template.limit };
+            activeReceipts.push(order);
+            
+            // 박스 내부에 컬러 바 정렬 (위에서부터 쌓이는 순서 유지)
+            let blueprintHTML = '<div class="mini-recipe-blueprint">';
+            template.burgerIngredients.forEach(ing => {
+                const color = BLUEPRINT_COLORS[ing] || '#ccc';
+                blueprintHTML += `<div class="mini-layer-line" style="background: ${color};"></div>`;
+            });
+            blueprintHTML += '</div>';
+
+            const zone = document.getElementById('receipt-zone');
+            const div = document.createElement('div');
+            div.className = 'receipt'; div.id = id;
+            div.innerHTML = `
+                <div class="receipt-header"><span>주문서</span><b style="color:red;cursor:pointer" onclick="event.stopPropagation(); discardOrder('${id}')">X</b></div>
+                
+                <div class="receipt-body">
+                    ${blueprintHTML}
+                    <div class="receipt-text-info">
+                        <div class="info-menu-title">${order.baseMenu}</div>
+                        ${order.isSet ? '<div class="info-set-tag">|세트</div>' : ''}
+                    </div>
+                </div>
+                
+                <div class="receipt-timer-bar"><div class="receipt-timer-fill" id="fill-${id}"></div></div>
+            `;
+            div.onclick = () => { const idx = activeReceipts.findIndex(r => r.id === id); if(idx !== -1) submitOrder(idx); };
+            zone.appendChild(div);
+        }
+
+        function updateReceiptTimers() {
+            if(!gameActive || isPaused) return;
+            for (let i = activeReceipts.length - 1; i >= 0; i--) {
+                const order = activeReceipts[i]; order.remaining -= 0.2;
+                const fill = document.getElementById(`fill-${order.id}`);
+                if (fill) {
+                    const pct = (order.remaining / order.limit) * 100;
+                    fill.style.width = `${Math.max(0, pct)}%`;
+                    fill.style.background = pct < 30 ? '#e53935' : pct < 60 ? '#ff9800' : '#4caf50';
+                }
+                if (order.remaining <= 0) {
+                    totalPenalty += Math.floor(order.price * 0.4); recalcScores();
+                    discardOrder(order.id); showToast("⚠️ 주문 제한시간 초과!");
+                }
+            }
+        }
+
+        function discardOrder(id) {
+            const idx = activeReceipts.findIndex(r => r.id === id); if(idx !== -1) activeReceipts.splice(idx, 1);
+            const el = document.getElementById(id); if(el) el.remove();
+        }
+
+        function recalcScores() {
+            netProfit = totalEarn - totalPenalty;
+            document.getElementById('earn-val').innerText = totalEarn.toLocaleString();
+            document.getElementById('penalty-val').innerText = totalPenalty.toLocaleString();
+            document.getElementById('stage-score').innerText = netProfit.toLocaleString();
+        }
+
+        function addLayer(type) {
+            if(!gameActive || isPaused) return;
+            soundClick(); currentBurger.push(type); renderBurger();
+        }
+
+        function addPattyFromStock() {
+            if (stockPatty > 0) { stockPatty--; updateStockUI(); addLayer('patty'); }
+            else { soundFail(); showToast("패티 재고 없음!"); }
+        }
+
+        function addFriesFromStock() {
+            if (trayHasFries) { showToast("쟁반에 감튀가 이미 있습니다."); return; }
+            trayHasFries = true; document.getElementById('tray-fries').innerText = '🍟'; soundClick();
+        }
+
+        function showMachineryToast() {
+            showToast("🍟 감자튀김, 🥩 패티, 🥤 음료는<br>중앙의 전용 기계 장치를 직접 클릭하세요!");
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && gameActive && !isPaused) togglePauseGame();
+        });
+
+        void function initStockFix(){ setTimeout(updateStockUI, 200); }();
+
+        function updateStockUI() {
+            const pBadge = document.getElementById('patty-stock-badge');
+            if(!pBadge) return;
+            pBadge.innerText = stockPatty;
+            if(stockPatty === 0) pBadge.classList.add('empty'); else pBadge.classList.remove('empty');
+        }
+
+        function renderBurger() {
+            const zone = document.getElementById('burger-zone'); zone.innerHTML = '';
+            currentBurger.forEach((ing, i) => {
+                const layer = document.createElement('div');
+                layer.className = 'burger-layer';
+                layer.style.bottom = `${i * 8}px`; layer.style.zIndex = i + 1;
+                layer.innerHTML = SVG_LAYERS[ing] || '';
+                zone.appendChild(layer);
+            });
+        }
+
+        function handleFryer() {
+            if(!gameActive || isPaused) return;
+            const status = document.getElementById('fryer-status'); const progress = document.getElementById('fryer-progress'); const fill = document.getElementById('fryer-fill');
+
+            if (fryerState === 'empty') {
+                soundSizzle(); fryerState = 'cooking'; fryerProgress = 0;
+                status.innerText = "조리 중..."; progress.style.display = 'block'; fill.style.background = '#4caf50';
+                fryerInterval = setInterval(() => {
+                    if (isPaused) return;
+                    fryerProgress += 10;
+                    fill.style.width = fryerProgress + '%';
+                    if (fryerProgress >= 100) { clearInterval(fryerInterval); fryerState = 'ready'; status.innerHTML = "⚡ 완료! (클릭하여 획득)"; fill.style.background = '#ff9800'; }
+                }, 100);
+            } else if (fryerState === 'ready') {
+                fryerState = 'empty'; status.innerText = "대기중"; progress.style.display = 'none'; addFriesFromStock();
+            }
+        }
+
+        function handleGrill() {
+            if(!gameActive || isPaused) return;
+            const status = document.getElementById('grill-status'); const progress = document.getElementById('grill-progress');
+            const fill = document.getElementById('grill-fill'); const emoji = document.getElementById('grill-emoji');
+
+            if (grillState === 'empty') {
+                soundSizzle(); grillState = 'cooking'; grillProgress = 0;
+                status.innerText = "4장 조리 중..."; progress.style.display = 'block'; fill.style.background = '#4caf50';
+                grillInterval = setInterval(() => {
+                    if (isPaused) return;
+                    grillProgress += 4;
+                    if (grillState === 'cooking') {
+                        fill.style.width = grillProgress + '%';
+                        if (grillProgress >= 100) { grillState = 'ready'; status.innerHTML = "⚡ 완료! (회수 클릭)"; fill.style.background = '#ff9800'; }
+                    } else if (grillState === 'ready') {
+                        fill.style.width = (grillProgress - 100) + '%'; fill.style.background = '#e53935';
+                        if (grillProgress >= 180) { clearInterval(grillInterval); grillState = 'burnt'; status.innerHTML = "❌ 타버림!"; emoji.innerText = "💀"; }
+                    }
+                }, 150);
+            } else if (grillState === 'ready') {
+                clearInterval(grillInterval); grillState = 'empty'; status.innerText = "대기중"; progress.style.display = 'none';
+                stockPatty += 4; updateStockUI(); soundSuccess();
+            } else if (grillState === 'burnt') {
+                grillState = 'empty'; status.innerText = "대기중"; progress.style.display = 'none'; emoji.innerText = "🥩"; soundFail();
+            }
+        }
+
+        function handleSoda() {
+            if(!gameActive || isPaused) return;
+            const status = document.getElementById('soda-status'); const progress = document.getElementById('soda-progress'); const fill = document.getElementById('soda-fill');
+
+            if (sodaState !== 'empty') {
+                if (sodaState === 'ready') {
+                    if(trayHasSoda) return;
+                    trayHasSoda = true; document.getElementById('tray-soda').innerText = '🥤';
+                    sodaState = 'empty'; status.innerText = "대기중"; progress.style.display = 'none'; soundClick();
+                }
+                return;
+            }
+            soundClick(); sodaState = 'pouring'; status.innerText = "음료 가동 중...";
+            progress.style.display = 'block'; fill.style.background = '#2196f3';
+            let pct = 0;
+            sodaInterval = setInterval(() => {
+                if (isPaused) return;
+                pct += 10; fill.style.width = pct + '%';
+                if(pct >= 100) { clearInterval(sodaInterval); sodaState = 'ready'; status.innerText = "⚡ 완료! (클릭)"; }
+            }, 120);
+        }
+
+        function clearTray() {
+            currentBurger = []; trayHasFries = false; trayHasSoda = false;
+            document.getElementById('burger-zone').innerHTML = '';
+            document.getElementById('tray-fries').innerHTML = ''; document.getElementById('tray-soda').innerHTML = '';
+        }
+
+        function trashTray() { soundFail(); clearTray(); showToast("🗑️ 조립대 음식을 폐기했습니다."); }
+
+        let startY = 0;
+        function startDrag(e) { e.preventDefault(); startY = e.clientY; }
+        function endDrag(e) {
+            if (startY === 0 || isPaused || !gameActive) return;
+            let diffY = startY - e.clientY; startY = 0;
+            if (diffY > 40) { if(activeReceipts.length > 0) submitOrder(0); }
+            else if (diffY < -40) trashTray();
+        }
+
+        function submitOrder(idx) {
+            if (currentBurger.length === 0 && !trayHasFries && !trayHasSoda) return;
+            const target = activeReceipts[idx];
+            
+            // 스택 매칭 검증은 바닥부터 위로 쌓은 순서대로 채점
+            const bMatch = JSON.stringify(currentBurger) === JSON.stringify(target.burgerIngredients);
+            const fMatch = trayHasFries === target.requiresFries;
+            const sMatch = trayHasSoda === target.requiresSoda;
+
+            if (bMatch && fMatch && sMatch) {
+                soundSuccess(); totalEarn += target.price; recalcScores();
+                showToast("✨ 서빙 성공! +" + target.price + "원");
+                discardOrder(target.id); clearTray();
+            } else { soundFail(); showToast(`레시피 오류! 주문서를 다시 확인하세요.`); }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast'); toast.innerHTML = msg;
+            toast.style.display = 'block'; setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+    </script>
+</body>
+</html>
