@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yacht Dice - v2.3.1 Evolution Edition (3D Dice Enhanced)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">]
+
+    <title>Yacht Dice - v2.4.0 Master Edition</title>
     
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -18,14 +19,9 @@
         #fireworksCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
 
         .title-wrapper { margin-top: 30px; margin-bottom: 20px; }
-        h2 { 
-            font-size: clamp(24px, 6.5vw, 65px); 
-            margin: 0; 
-            display: inline-block; 
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.4); 
-            vertical-align: middle; 
-            white-space: nowrap; 
-        }
+        h2 { font-size: clamp(24px, 6.5vw, 65px); margin: 0; display: inline-block; text-shadow: 2px 2px 5px rgba(0,0,0,0.4); vertical-align: middle; white-space: nowrap; }
+        .ver-badge { background-color: #f1c40f; color: #1a252f; padding: 3px 8px; border-radius: 4px; font-size: 14px; font-weight: bold; vertical-align: middle; margin-left: 8px; }
+        
         .lang-selector { 
             display: block; margin: 15px auto 0 auto; width: 500px; max-width: 100%; 
             background-color: #34495e; color: white; border: 1px solid #bdc3c7; 
@@ -65,8 +61,9 @@
         .cat-name i { margin-right: 6px; color: #555; }
         .max-score { color: #95a5a6; font-size: 11px; float: right; font-weight: normal; line-height: 1.5; }
         
-        .score-cell { font-weight: bold; width: 28%; font-size: 16px; transition: 0.2s; }
+        .score-cell { font-weight: bold; width: 28%; font-size: 16px; transition: 0.2s; height: 38px; }
         .score-cell.potential { color: #2ecc71; background-color: #f0fff0; cursor: pointer; }
+        .score-cell.potential:hover { background-color: #d4edd5; }
         .score-cell.filled { color: #2c3e50; background-color: #f8f9fa; }
 
         @keyframes popHighlight { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
@@ -83,16 +80,41 @@
         .code-box:hover { background-color: #3b536b; border-color: #bdc3c7; }
         .code-box:active { background-color: #2c3e50; transform: scale(0.98); }
         .copy-hint { font-size: 12px; color: #bdc3c7; margin-top: 8px; font-weight: bold; }
-        .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; }
+        .status-msg { font-size: 18px; font-weight: bold; margin: 10px 0; color: #f1c40f; min-height: 27px; }
         .status-msg.opp-turn { color: #e74c3c !important; }
         
         .error-msg { color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 12px; display: none; animation: popHighlight 0.3s ease-out; }
         #actionButtons { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
 
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(26, 37, 47, 0.4); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; justify-content: flex-end; padding-bottom: 30px; }
-        .overlay.show { display: flex; }
-        .result-box { background-color: #2c3e50; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 2px solid #f1c40f; width: 90%; max-width: 500px; }
+        /* [개선] 결과창 뒷배경 오버레이 설정: 하단 정렬 기준 정교화 */
+.overlay { 
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100vw; 
+    height: 100vh; 
+    background-color: rgba(26, 37, 47, 0.6); /* 배경 가시성 확보를 위해 조금 더 어둡게 */
+    z-index: 1000; 
+    justify-content: center; 
+    align-items: flex-end; /* 무조건 화면 최하단에 자식 요소를 정렬 (하단 앵커링) */
+    padding-bottom: env(safe-area-inset-bottom, 15px); /* 모바일 기기 하단 소프트키/바 영역 대응 예외처리 */
+}
+.overlay.show { display: flex; }
 
+/* [개선] 하단 앵커 결과 팝업 박스: 유연한 최대 높이 지정을 통해 절대 잘리지 않음 */
+.result-box { 
+    background-color: #2c3e50; 
+    padding: 20px; 
+    border-radius: 15px 15px 0 0; /* 하단 앵커 형태에 맞게 위쪽 모서리만 라운딩 */
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.6); 
+    border: 2px solid #f1c40f; 
+    border-bottom: none; /* 바닥에 붙으므로 하단 테두리는 생략 */
+    width: 100%; 
+    max-width: 500px; 
+    max-height: 85vh; /* 화면 전체 높이의 85%를 넘지 않도록 제한 */
+    overflow-y: auto; /* 만에 하나 세로가 극단적으로 작은 기기에서는 내부 스크롤 제공 */
+    box-sizing: border-box;
+}
         @media (max-width: 500px) {
             .title-wrapper { margin-top: 25px; margin-bottom: 15px; }
             h2 { font-size: 24px; } 
@@ -105,9 +127,8 @@
     <canvas id="fireworksCanvas"></canvas>
 
     <div class="title-wrapper">
-        <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2>
-        <br>
-        <span class="ver-badge">v2.3.2</span>
+        <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2><br>
+        <span class="ver-badge">v2.4.0 Master</span>
     </div>
 
     <div id="login-view" class="view active">
@@ -120,13 +141,11 @@
         <select id="langSelect" class="lang-selector" onchange="changeLanguage(this.value)">
             <option value="ko">🇰🇷 한국어 (Korean)</option>
             <option value="en">🇺🇸 English</option>
-            <option value="ja">🇯🇵 日本語 (Japanese)</option>
-            <option value="zh-CN">🇨🇳 简体中文 (S. Chinese)</option>
-            <option value="zh-TW">🇹🇼 繁體中文 (T. Chinese)</option>
         </select>
 
         <div class="patch-notes">
             <div style="font-weight:bold; color:white; margin-bottom:6px;"><i class="fa-solid fa-bullhorn" style="color:#f1c40f;"></i> <span data-i18n="patchTitle">업데이트 내역</span></div>
+            • <b>v2.4.0</b> : Three.js 메모리 누수 방지, 주사위 리셋 물리 보정, 알파다이스 인공지능 벨런싱 패치<br>
             • <b>v2.3.2</b> : 상대편의 주사위 컬러변경, 알파다이스 버그수정<br>
             • <b>v2.3.1</b> : 난이도 조절, 주사위 3d 연출로 교체, 사이즈 확대<br>
             • <b>v2.3.0</b> : P2P 10초 타임아웃 & 에러 핸들링 탑재<br>
@@ -147,13 +166,11 @@
         </div><br>
         <input type="text" id="oppCodeInput" data-i18n="oppPlaceholder" placeholder="상대방 코드 입력 (빈칸 시 봇전)"><br>
         <button id="connectBtn" class="btn-blue" onclick="connectToOpponent()" disabled data-i18n="startBtn" style="width: 500px; max-width: 100%; margin-top: 10px;">게임 시작</button>
-        
         <div id="connectionErrorMsg" class="error-msg"></div>
     </div>
 
     <div id="game-view" class="view">
         <div id="turnText" class="status-msg" data-i18n="waiting">대기 중...</div>
-        
         <div class="dice-container" id="diceContainer"></div>
         
         <div id="actionButtons">
@@ -198,24 +215,25 @@
         </div>
     </div>
 
-    <div id="gameover-overlay" class="overlay">
+   <div id="gameover-overlay" class="overlay">
         <div class="result-box">
-            <h1 id="winnerText" style="font-size: 28px; color: #f1c40f; margin-top: 0; margin-bottom: 10px; word-break: keep-all;"></h1>
-            <p id="finalScoreMsg" style="font-size: 16px; margin-bottom: 20px;"></p>
-            <button class="btn-purple" id="captureBtn" onclick="captureScoreboard()" style="width: 100%; margin-bottom: 10px;">
+            <h1 id="winnerText" style="font-size: 24px; color: #f1c40f; margin-top: 0; margin-bottom: 8px; word-break: keep-all;"></h1>
+            <p id="finalScoreMsg" style="font-size: 15px; margin-top: 0; margin-bottom: 15px; color: #bdc3c7;"></p>
+            
+            <button class="btn-purple" id="captureBtn" onclick="captureScoreboard()" style="width: 100%; margin: 0 0 10px 0; padding: 10px 20px;">
                 <i class="fa-solid fa-camera"></i> <span data-i18n="captureBtnTxt">점수판 캡쳐</span>
             </button>
             
             <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button class="btn-red" id="levelUpBtn" onclick="triggerLevelUpRematch()" style="display: none; font-size: 15px; width: 100%; margin: 0;">
+                <button class="btn-red" id="levelUpBtn" onclick="triggerLevelUpRematch()" style="display: none; font-size: 15px; width: 100%; margin: 0; padding: 10px 20px;">
                     🔥 <span data-i18n="levelUpBtnTxt">더 강한 상대에게 도전</span>
                 </button>
                 <div style="display: flex; justify-content: space-between; gap: 10px;">
-                    <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px; margin: 0;" data-i18n="rematchBtnTxt">다시하기</button>
-                    <button class="btn-blue" onclick="location.reload()" style="flex: 1; font-size: 14px; margin: 0;" data-i18n="exitBtnTxt">종료</button>
+                    <button class="btn-green" id="rematchBtn" onclick="requestRematch()" style="flex: 1; font-size: 14px; margin: 0; padding: 10px 20px;" data-i18n="rematchBtnTxt">다시하기</button>
+                    <button class="btn-blue" onclick="location.reload()" style="flex: 1; font-size: 14px; margin: 0; padding: 10px 20px;" data-i18n="exitBtnTxt">종료</button>
                 </div>
             </div>
-            <div id="rematchStatus" style="margin-top: 10px; color: #bdc3c7; font-size: 12px;"></div>
+            <div id="rematchStatus" style="margin-top: 8px; color: #bdc3c7; font-size: 12px; min-height: 14px;"></div>
         </div>
     </div>
 
@@ -264,7 +282,6 @@
         let sysLang = 'en';
         const navLang = navigator.language.toLowerCase();
         if (navLang.startsWith('ko')) sysLang = 'ko';
-        else if (navLang.startsWith('ja')) sysLang = 'ja';
         
         let t = i18n[sysLang] || i18n['en'];
 
@@ -296,7 +313,6 @@
         function changeLanguage(lang) {
             sysLang = lang; t = i18n[sysLang] || i18n['en'];
             applyLanguage();
-            
             if (isBotMode) {
                 oppNickname = t.botName + " Lv." + botLevel;
                 document.getElementById('p2Name').innerText = oppNickname;
@@ -362,7 +378,7 @@
                 ctx.fillStyle = '#fdfdfd'; ctx.fillRect(0, 0, 256, 256); 
                 ctx.fillStyle = '#1e469c'; 
                 const center = 128, low = 72, high = 184, radius = 22;
-                function drawDot(x, y) { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
+                const drawDot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
                 if (dots === 1) { drawDot(center, center); }
                 else if (dots === 2) { drawDot(low, low); drawDot(high, high); }
                 else if (dots === 3) { drawDot(low, low); drawDot(center, center); drawDot(high, high); }
@@ -383,7 +399,7 @@
                 ctx.fillStyle = '#ffc0cb'; ctx.fillRect(0, 0, 256, 256); 
                 ctx.fillStyle = '#ff0000'; 
                 const center = 128, low = 72, high = 184, radius = 22;
-                function drawDot(x, y) { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
+                const drawDot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
                 if (dots === 1) { drawDot(center, center); }
                 else if (dots === 2) { drawDot(low, low); drawDot(high, high); }
                 else if (dots === 3) { drawDot(low, low); drawDot(center, center); drawDot(high, high); }
@@ -415,16 +431,34 @@
         }
 
         const faceRotations = {
-            1: { x: 0, y: 0 },
-            2: { x: Math.PI / 2, y: 0 },
-            3: { x: 0, y: -Math.PI / 2 },
-            4: { x: 0, y: Math.PI / 2 },
-            5: { x: -Math.PI / 2, y: 0 },
-            6: { x: 0, y: Math.PI }
+            1: { x: 0, y: 0, z: 0 },
+            2: { x: Math.PI / 2, y: 0, z: 0 },
+            3: { x: 0, y: -Math.PI / 2, z: 0 },
+            4: { x: 0, y: Math.PI / 2, z: 0 },
+            5: { x: -Math.PI / 2, y: 0, z: 0 },
+            6: { x: 0, y: Math.PI, z: 0 }
         };
+
+        // [개선 완료] Three.js 메모리 누수 원천 차단을 위한 개별 Dispose 함수 탑재
+        function disposeDiceApp(appObj) {
+            if (!appObj) return;
+            appObj.isAnimating = false;
+            if (appObj.frameId) cancelAnimationFrame(appObj.frameId);
+            if (appObj.mesh) {
+                appObj.scene.remove(appObj.mesh);
+                if (appObj.mesh.geometry) appObj.mesh.geometry.dispose();
+            }
+            if (appObj.renderer) {
+                appObj.renderer.dispose();
+                if (appObj.renderer.domElement && appObj.renderer.domElement.parentNode) {
+                    appObj.renderer.domElement.parentNode.removeChild(appObj.renderer.domElement);
+                }
+            }
+        }
 
         function initSingle3DDice(boxId, index) {
             const box = document.getElementById(boxId);
+            if (!box) return;
             const size = box.clientWidth || 78; 
             
             const scene = new THREE.Scene();
@@ -433,7 +467,7 @@
 
             const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(size, size);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 성능 캡핑 추가
             box.appendChild(renderer.domElement);
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); scene.add(ambientLight);
@@ -447,21 +481,23 @@
             const mesh = new THREE.Mesh(geometry, materials);
             scene.add(mesh);
 
-            mesh.rotation.x = 0.6; mesh.rotation.y = 0.6;
+            mesh.rotation.set(0.6, 0.6, 0);
 
             let appObj = {
                 mesh: mesh, renderer: renderer, scene: scene, camera: camera,
-                targetX: 0.6, targetY: 0.6, isAnimating: true
+                targetX: 0.6, targetY: 0.6, targetZ: 0, isAnimating: true, frameId: null
             };
             dice3DApps[index] = appObj;
 
+            // 보간법(LERP) 수치를 높여 감속 싱크를 자연스럽게 맞춤
             function renderTick() {
                 if(appObj.isAnimating) {
-                    mesh.rotation.x += (appObj.targetX - mesh.rotation.x) * 0.18;
-                    mesh.rotation.y += (appObj.targetY - mesh.rotation.y) * 0.18;
+                    mesh.rotation.x += (appObj.targetX - mesh.rotation.x) * 0.15;
+                    mesh.rotation.y += (appObj.targetY - mesh.rotation.y) * 0.15;
+                    mesh.rotation.z += (appObj.targetZ - mesh.rotation.z) * 0.15;
                 }
                 renderer.render(scene, camera);
-                requestAnimationFrame(renderTick);
+                appObj.frameId = requestAnimationFrame(renderTick);
             }
             renderTick();
         }
@@ -471,8 +507,10 @@
             if (!app) return;
             const extraRollsX = (Math.floor(Math.random() * 3) + 4) * Math.PI * 2;
             const extraRollsY = (Math.floor(Math.random() * 3) + 4) * Math.PI * 2;
+            
             app.targetX = faceRotations[finalValue].x + extraRollsX;
             app.targetY = faceRotations[finalValue].y + extraRollsY;
+            app.targetZ = faceRotations[finalValue].z; // Z축 정상화 매핑 고정
         }
 
         function captureScoreboard() {
@@ -493,7 +531,7 @@
                 
                 btn.innerHTML = `<i class="fa-solid fa-check"></i> OK!`;
                 setTimeout(() => { btn.innerHTML = `<i class="fa-solid fa-camera"></i> <span data-i18n="captureBtnTxt">${t.captureBtnTxt}</span>`; }, 2000);
-            }).catch(err => {
+            }).catch(() => {
                 btn.innerHTML = '<i class="fa-solid fa-camera"></i> Error';
             });
         }
@@ -508,6 +546,7 @@
             });
         }
 
+        // 파이어워크 효과 로직
         const canvas = document.getElementById('fireworksCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -591,16 +630,11 @@
             peer.on('error', err => {
                 const errorBox = document.getElementById('connectionErrorMsg');
                 const connectBtn = document.getElementById('connectBtn');
-                
                 errorBox.style.display = 'block';
                 
-                if (err.type === 'peer-unavailable') {
-                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errNotFound}`;
-                } else if (err.type === 'network' || err.type === 'disconnected') {
-                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errNetwork}`;
-                } else {
-                    errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errGeneric} (${err.type})`;
-                }
+                if (err.type === 'peer-unavailable') errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errNotFound}`;
+                else if (err.type === 'network' || err.type === 'disconnected') errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errNetwork}`;
+                else errorBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t.errGeneric} (${err.type})`;
                 
                 connectBtn.disabled = false;
                 connectBtn.innerText = t.startBtn;
@@ -642,7 +676,6 @@
                 clearTimeout(connectionTimeoutId); 
                 conn.send({ type: 'JOIN', nickname: myNickname });
             });
-            
             setupConnection();
         }
 
@@ -676,7 +709,7 @@
             if(connectionTimeoutId) clearTimeout(connectionTimeoutId);
             
             switchView('game-view');
-            document.getElementById('gameover-overlay').classList.remove('show'); // 오타 패치
+            document.getElementById('gameover-overlay').classList.remove('show');
             document.getElementById('actionButtons').style.display = 'flex'; 
             document.getElementById('p1Name').innerText = t.myTxtStr; 
             document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
@@ -690,8 +723,11 @@
         }
 
         function initDiceUI() {
+            // [개선 완료] 루프를 돌며 남아있던 기존 가비지 3D 객체들 렌더 레이어에서 안전 해제(Dispose)
+            dice3DApps.forEach(app => disposeDiceApp(app));
+            dice3DApps = [];
+
             const container = document.getElementById('diceContainer'); container.innerHTML = '';
-            dice3DApps = []; 
             for(let i=0; i<5; i++) {
                 let d = document.createElement('div'); 
                 d.className = 'dice-3d-box'; 
@@ -740,13 +776,9 @@
 
         function playRollingAnimation(targetValues, callback) {
             for(let i=0; i<5; i++) {
-                if(!isHeld[i]) {
-                    animate3DDiceRoll(i, targetValues[i]);
-                }
+                if(!isHeld[i]) animate3DDiceRoll(i, targetValues[i]);
             }
-            setTimeout(() => {
-                if(callback) callback();
-            }, 1000); 
+            setTimeout(() => { if(callback) callback(); }, 900); // 렌더링 싱크 감속 시점 최적화(900ms)
         }
 
         function rollDice() {
@@ -793,13 +825,12 @@
             if(conn && !isBotMode) conn.send({ type: 'SYNC_SCORE', category: catId, score: myScores[catId] });
             
             isMyTurn = false; resetTurnData(); updateUI();
-            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1500); } 
+            if (isBotMode && !checkGameEnd()) { setTimeout(runBotLogic, 1300); } 
             else { checkGameEnd(); }
         }
 
         function checkBotSurrenderCondition() {
             if (!isBotMode) return false;
-
             let playerTotal = calculateScores(myScores).total;
             let botCurrentUpper = 0; let botEmptyUpperMax = 0; let botEmptyLowerMax = 0;
 
@@ -833,17 +864,17 @@
                 setTimeout(() => {
                     alert(t.botSurrenderMsg);
                     showVictoryScreen(myNickname);
-                }, 1000);
+                }, 500);
                 return;
             }
             
             if (rollsLeft === 3) { 
-                botRollDice(() => { setTimeout(runBotLogic, 1500); }); 
+                botRollDice(() => { setTimeout(runBotLogic, 1200); }); 
             } else if (rollsLeft > 0) { 
                 botDecideHolds(); 
-                setTimeout(() => { botRollDice(() => { setTimeout(runBotLogic, 1500); }); }, 1000);
+                setTimeout(() => { botRollDice(() => { setTimeout(runBotLogic, 1200); }); }, 900);
             } else { 
-                setTimeout(botSelectScore, 800);
+                setTimeout(botSelectScore, 600);
             }
         }
 
@@ -866,32 +897,25 @@
         }
         
         function botDecideHolds() {
-    let mistake = getMistakeChance();
-    if (Math.random() * 100 < mistake) {
-        // 실수 확률 발동 시 무작위 홀드
-        for(let i=0; i<5; i++) { isHeld[i] = Math.random() > 0.5; }
-    } else {
-        // 1. 현재 주사위 눈의 빈도수 계산
-        let counts = [0, 0, 0, 0, 0, 0, 0]; 
-        diceValues.forEach(d => counts[d]++);
-        
-        // 2. 가장 많이 나온 주사위 눈(targetNum) 찾기
-        let maxFreq = 0;
-        let targetNum = 1;
-        for (let num = 1; num <= 6; num++) {
-            if (counts[num] > maxFreq) {
-                maxFreq = counts[num];
-                targetNum = num;
+            let mistake = getMistakeChance();
+            if (Math.random() * 100 < mistake) {
+                for(let i=0; i<5; i++) { isHeld[i] = Math.random() > 0.5; }
+            } else {
+                let counts = [0, 0, 0, 0, 0, 0, 0]; 
+                diceValues.forEach(d => counts[d]++);
+                
+                let maxFreq = 0;
+                let targetNum = 1;
+                for (let num = 1; num <= 6; num++) {
+                    if (counts[num] > maxFreq) {
+                        maxFreq = counts[num];
+                        targetNum = num;
+                    }
+                }
+                for(let i=0; i<5; i++) { isHeld[i] = (diceValues[i] === targetNum); }
             }
+            updateUI();
         }
-        
-        // 3. 목표 숫자인 주사위만 정확하게 Keep (기존 Hold 갱신)
-        for(let i=0; i<5; i++) { 
-            isHeld[i] = (diceValues[i] === targetNum); 
-        }
-    }
-    updateUI();
-}
 
         function botSelectScore() {
             try {
@@ -906,8 +930,10 @@
                     for (let cat of categories) {
                         if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { bestScore = p[cat.id]; bestCat = cat.id; }
                     }
+                    // [벨런싱 패치] 고득점 족보를 무작위로 0점 처리하던 디벨롭 이슈 수정.
+                    // 리스크가 낮은 Aces 계열 상단 혹은 기대값이 좁은 4ofakind 순으로 최적화 배치.
                     if (bestScore === 0 || bestCat === null) {
-                        const sacrificeOrder = ['aces','twos','threes','fours','yacht','lstraight','sstraight','fullhouse','4ofakind','choice','fives','sixes'];
+                        const sacrificeOrder = ['aces','twos','threes','fours','4ofakind','choice','fullhouse','sstraight','lstraight','fives','sixes','yacht'];
                         for (let catId of sacrificeOrder) { if (oppScores[catId] === undefined) { bestCat = catId; break; } }
                     }
                 }
@@ -917,7 +943,6 @@
                     lastScoredId = `opp-${bestCat}`;
                 }
             } catch (e) {
-                // 예외 안전 처리 루프 변경
                 const remainCats = categories.filter(c => oppScores[c.id] === undefined);
                 if(remainCats.length > 0) {
                     oppScores[remainCats[0].id] = 0;
@@ -935,7 +960,8 @@
             p['4ofakind'] = counts.some(c => c >= 4) ? sum : 0;
             p['fullhouse'] = (counts.some(c => c === 3) && counts.some(c => c === 2)) || counts.some(c => c === 5) ? sum : 0;
             let s = counts.slice(1).map(c => c>0?1:0).join('');
-            p['sstraight'] = s.includes('1111') ? 15 : 0; p['lstraight'] = s.includes('11111') ? 30 : 0;
+            p['sstraight'] = s.includes('1111') || s.includes('11110') || s.includes('01111') ? 15 : 0; 
+            p['lstraight'] = s.includes('11111') ? 30 : 0;
             p['yacht'] = counts.some(c => c === 5) ? 50 : 0;
             return p;
         }
@@ -1036,24 +1062,17 @@
             
             if (isBotMode) {
                 rematchBtn.innerText = t.retryBtnTxt; 
-                if (isWin) {
-                    levelUpBtn.style.display = 'block'; 
-                } else {
-                    levelUpBtn.style.display = 'none';
-                }
+                if (isWin) levelUpBtn.style.display = 'block'; 
+                else levelUpBtn.style.display = 'none';
             } else {
                 levelUpBtn.style.display = 'none';
                 rematchBtn.innerText = t.rematchBtnTxt; 
             }
 
             const diceCont = document.getElementById('diceContainer');
-            if(isDraw) {
-                diceCont.innerHTML = `<div class="result-dice-text" style="color:#bdc3c7;">${t.draw}</div>`;
-            } else if(isWin) {
-                diceCont.innerHTML = `<div class="result-dice-text" style="color:#2ecc71;">${t.win}</div>`;
-            } else {
-                diceCont.innerHTML = `<div class="result-dice-text" style="color:#e74c3c;">${t.lose}</div>`;
-            }
+            if(isDraw) diceCont.innerHTML = `<div class="result-dice-text" style="color:#bdc3c7;">${t.draw}</div>`;
+            else if(isWin) diceCont.innerHTML = `<div class="result-dice-text" style="color:#2ecc71;">${t.win}</div>`;
+            else diceCont.innerHTML = `<div class="result-dice-text" style="color:#e74c3c;">${t.lose}</div>`;
             
             let wText = isDraw ? t.draw : `🎉 ${winner} ${t.winMsg} 🎉`;
             if (isBotWin) wText = t.botLose; 
@@ -1106,11 +1125,12 @@
             isHeld = [false,false,false,false,false]; 
             rollsLeft = 3; 
             
+            // [개선 완료] targetZ 누락 현상 수정 및 축 정렬 수치 보정 적용
             for(let i=0; i<5; i++){
                 if(dice3DApps[i]){
-                    dice3DApps[i].targetX = 0.65;
-                    dice3DApps[i].targetY = 0.75;
-                    dice3DApps[i].targetZ = 0.50;
+                    dice3DApps[i].targetX = 0.6;
+                    dice3DApps[i].targetY = 0.6;
+                    dice3DApps[i].targetZ = 0;
                 }
             }
         }
