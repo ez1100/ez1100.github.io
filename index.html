@@ -2,9 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">]
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Yacht Dice - v2.4.0 Master Edition</title>
+    <title>Yacht Dice - v2.4.3 Master Edition</title>
     
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -39,17 +39,40 @@
         .patch-notes::-webkit-scrollbar { width: 6px; }
         .patch-notes::-webkit-scrollbar-thumb { background-color: #7f8c8d; border-radius: 3px; }
 
-        button { padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.3s; margin: 5px; }
+        /* [변경] 버튼 기본 디자인 컴포넌트화 및 액션 버튼 크기 밸런싱 세팅 */
+        button { padding: 12px 16px; font-size: 15px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: 0.3s; margin: 0; }
         .btn-red { background-color: #e74c3c; color: white; } .btn-red:hover { background-color: #c0392b; }
         .btn-green { background-color: #2ecc71; color: white; }
         .btn-blue { background-color: #3498db; color: white; }
         .btn-purple { background-color: #9b59b6; color: white; } .btn-purple:hover { background-color: #8e44ad; }
         button:disabled { background-color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
 
-        .dice-container { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 20px 0; min-height: 80px; flex-wrap: wrap; }
+        .dice-area-wrapper { position: relative; max-width: 450px; margin: 20px auto; }
+        .dice-container { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 80px; flex-wrap: wrap; }
         .dice-3d-box { width: 78px; height: 78px; position: relative; cursor: pointer; border-radius: 12px; transition: 0.1s; background-color: rgba(255,255,255,0.03); border: 2px solid transparent; box-sizing: border-box; }
         .dice-3d-box.held { border-color: #f1c40f; background-color: rgba(241, 196, 15, 0.1); transform: translateY(5px); }
         .dice-3d-box canvas { width: 100% !important; height: 100% !important; display: block; border-radius: 10px; }
+
+        .bot-surrender-banner { 
+            display: none; 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%); 
+            border: 2px dashed #e74c3c; 
+            border-radius: 12px; 
+            z-index: 10; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column; 
+            padding: 10px;
+            box-sizing: border-box;
+            animation: popHighlight 0.4s ease-out;
+        }
+        .bot-surrender-banner.show { display: flex; }
+        .bot-surrender-banner p { margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #ff9f89; line-height: 1.4; word-break: keep-all; }
+        .bot-surrender-banner .btn-group { display: flex; gap: 8px; width: 100%; justify-content: center; }
+        .bot-surrender-banner button { padding: 6px 12px; font-size: 12px; margin: 0; }
 
         .result-dice-text { font-size: 36px; font-weight: 900; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); animation: popHighlight 0.5s ease-out; }
 
@@ -66,7 +89,7 @@
         .score-cell.potential:hover { background-color: #d4edd5; }
         .score-cell.filled { color: #2c3e50; background-color: #f8f9fa; }
 
-        @keyframes popHighlight { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        @keyframes popHighlight { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
         .score-cell.last-scored { background-color: #fff3cd !important; color: #d35400 !important; border: 2px solid #f1c40f; animation: popHighlight 0.4s ease-out; box-shadow: inset 0 0 10px rgba(241, 196, 15, 0.3); }
 
         .bonus-row { background-color: #ebf5fb; font-size: 13px; font-weight: bold; }
@@ -84,41 +107,65 @@
         .status-msg.opp-turn { color: #e74c3c !important; }
         
         .error-msg { color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 12px; display: none; animation: popHighlight 0.3s ease-out; }
-        #actionButtons { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
-
-        /* [개선] 결과창 뒷배경 오버레이 설정: 하단 정렬 기준 정교화 */
-.overlay { 
-    display: none; 
-    position: fixed; 
-    top: 0; left: 0; 
-    width: 100vw; 
-    height: 100vh; 
-    background-color: rgba(26, 37, 47, 0.6); /* 배경 가시성 확보를 위해 조금 더 어둡게 */
-    z-index: 1000; 
+        
+        /* [변경] 조작 버튼 그룹 정렬 컨테이너 가로 대응 최적화 */
+#actionButtons { 
+    display: flex; 
     justify-content: center; 
-    align-items: flex-end; /* 무조건 화면 최하단에 자식 요소를 정렬 (하단 앵커링) */
-    padding-bottom: env(safe-area-inset-bottom, 15px); /* 모바일 기기 하단 소프트키/바 영역 대응 예외처리 */
-}
-.overlay.show { display: flex; }
-
-/* [개선] 하단 앵커 결과 팝업 박스: 유연한 최대 높이 지정을 통해 절대 잘리지 않음 */
-.result-box { 
-    background-color: #2c3e50; 
-    padding: 20px; 
-    border-radius: 15px 15px 0 0; /* 하단 앵커 형태에 맞게 위쪽 모서리만 라운딩 */
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.6); 
-    border: 2px solid #f1c40f; 
-    border-bottom: none; /* 바닥에 붙으므로 하단 테두리는 생략 */
+    align-items: center; 
+    gap: 8px; 
+    margin: 0 auto 15px auto; 
     width: 100%; 
-    max-width: 500px; 
-    max-height: 85vh; /* 화면 전체 높이의 85%를 넘지 않도록 제한 */
-    overflow-y: auto; /* 만에 하나 세로가 극단적으로 작은 기기에서는 내부 스크롤 제공 */
-    box-sizing: border-box;
+    max-width: 450px; 
 }
+/* 모드 전환 버튼 스타일 및 레이아웃 균등 분할 */
+#modeToggleBtn { 
+    background-color: #34495e; 
+    color: white; 
+    border: 1px solid #7f8c8d; 
+    flex: 1.1; 
+    white-space: nowrap; 
+    font-size: 13px; 
+}
+#modeToggleBtn:hover { background-color: #4f6b85; }
+#rollBtn { flex: 1.2; white-space: nowrap; font-size: 14px; }
+#surrenderBtn { flex: 0.7; background-color: #7f8c8d; white-space: nowrap; }
+
+        .overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background-color: rgba(15, 23, 30, 0.75); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .overlay.show { display: flex; }
+
+        .result-box { 
+            background-color: #2c3e50; 
+            padding: 22px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
+            border: 2px solid #f1c40f; 
+            width: 95%; 
+            max-width: 420px; 
+            max-height: 80vh; 
+            overflow-y: auto; 
+            box-sizing: border-box;
+        }
         @media (max-width: 500px) {
             .title-wrapper { margin-top: 25px; margin-bottom: 15px; }
             h2 { font-size: 24px; } 
             .ver-badge { font-size: 11px; padding: 2px 6px; margin-left: 4px; }
+            button { padding: 12px 10px; font-size: 13px; }
+            #modeToggleBtn { font-size: 11px; }
+            #rollBtn { font-size: 11px; }
+            #surrenderBtn { font-size: 11px; }
         }
     </style>
 </head>
@@ -128,7 +175,7 @@
 
     <div class="title-wrapper">
         <h2 data-i18n="mainTitle">🎲 YACHT DICE ONLINE 🎲</h2><br>
-        <span class="ver-badge">v2.4.0 Master</span>
+        <span class="ver-badge">v2.4.3 Master</span>
     </div>
 
     <div id="login-view" class="view active">
@@ -145,7 +192,9 @@
 
         <div class="patch-notes">
             <div style="font-weight:bold; color:white; margin-bottom:6px;"><i class="fa-solid fa-bullhorn" style="color:#f1c40f;"></i> <span data-i18n="patchTitle">업데이트 내역</span></div>
-            • <b>v2.4.0</b> : Three.js 메모리 누수 방지, 주사위 리셋 물리 보정, 알파다이스 인공지능 벨런싱 패치<br>
+            • <b>v2.4.3</b> : 주사위 모드 전환 버튼 하단 인터페이스 레이아웃 편입 및 아이콘 스위칭 최적화 적용<br>
+            • <b>v2.4.2</b> : 주사위 인터페이스 내장형 '전의상실 인라인 배너' 개편<br>
+  • <b>v2.4.0</b> : Three.js 메모리 누수 방지, 주사위 리셋 물리 보정, 알파다이스 인공지능 벨런싱 패치<br>
             • <b>v2.3.2</b> : 상대편의 주사위 컬러변경, 알파다이스 버그수정<br>
             • <b>v2.3.1</b> : 난이도 조절, 주사위 3d 연출로 교체, 사이즈 확대<br>
             • <b>v2.3.0</b> : P2P 10초 타임아웃 & 에러 핸들링 탑재<br>
@@ -153,8 +202,7 @@
             • <b>v2.1.0</b> : 대전 보상 선택지 (강화 훈련 / 반복 훈련)<br>
             • <b>v2.0.0</b> : 글로벌 5개국어 지원 & 스크린샷 현지화<br>
             • <b>v1.5.0</b> : 모바일 컴팩트 UI & 테이블 줄바꿈 방지<br>
-            • <b>v1.0.0</b> : 실시간 온라인 대전 & 봇 조기 기권 탑재
-        </div>
+            • <b>v1.0.0</b> : 실시간 온라인 대전 & 봇 조기 기권 탑재        </div>
     </div>
 
     <div id="lobby-view" class="view">
@@ -171,12 +219,26 @@
 
     <div id="game-view" class="view">
         <div id="turnText" class="status-msg" data-i18n="waiting">대기 중...</div>
-        <div class="dice-container" id="diceContainer"></div>
+        
+        <div class="dice-area-wrapper">
+            <div class="dice-container" id="diceContainer"></div>
+            
+            <div id="botSurrenderBanner" class="bot-surrender-banner">
+                <p id="botSurrenderText">🤖 압도적인 패배에 전의를 상실했습니다..</p>
+                <div class="btn-group">
+                    <button class="btn-red" onclick="acceptBotSurrender()">🏳️ 기권 수락</button>
+                    <button class="btn-green" onclick="refuseBotSurrender()" style="background-color: #27ae60;">🔥 참교육</button>
+                </div>
+            </div>
+        </div>
         
         <div id="actionButtons">
-            <button id="rollBtn" class="btn-red" onclick="rollDice()"><span data-i18n="rollBtnTxt">주사위 굴리기</span> (<span id="rollsLeftText">3</span>/3)</button>
-            <button id="surrenderBtn" class="btn-blue" style="background-color: #7f8c8d;" onclick="surrender()" data-i18n="surrenderBtnTxt">기권</button>
-        </div>
+    <button id="modeToggleBtn" onclick="toggleDiceMode()">
+        <i id="diceModeIcon" class="fa-solid fa-square-1"></i> <span id="diceModeBtnText">숫자 모드로 전환</span>
+    </button>
+    <button id="rollBtn" class="btn-red" onclick="rollDice()"><span data-i18n="rollBtnTxt">주사위 굴리기</span> (<span id="rollsLeftText">3</span>/3)</button>
+    <button id="surrenderBtn" class="btn-blue" onclick="surrender()" data-i18n="surrenderBtnTxt">기권</button>
+</div>
 
        <table id="scoreBoard">
             <thead>
@@ -251,7 +313,8 @@
                 captureBtnTxt: "점수판 캡쳐", rematchBtnTxt: "다시하기", retryBtnTxt: "현재 난이도 재도전", levelUpBtnTxt: "더 강한 상대에게 도전", exitBtnTxt: "종료", botName: "🤖 알파다이스", userStr: "유저", maxTxt: "최대", fixTxt: "점",
                 myTxtStr: "나", oppTxtStr: "상대", myTurn: "🔥 내 차례입니다!", botThinking: "🤖 생각 중...", oppTurn: "님의 차례...",
                 draw: "🤝 무승부 🤝", win: "🎉 승 리 🎉", lose: "😭 패 배 😭", botLose: "😭 알파다이스 승리...", winMsg: "승리!",
-                surrenderAlert: "정말 기권하시겠습니까?", oppSurrenderAlert: "상대방이 기권했습니다!", connClosed: "연결이 종료되었습니다.", botSurrenderMsg: "🤖 계산 결과 승률 0%... 기권하겠습니다.",
+                surrenderAlert: "정말 기권하시겠습니까?", oppSurrenderAlert: "상대방이 기권했습니다!", connClosed: "연결이 종료되었습니다.", 
+                botSurrenderMsg: "🤖 계산 결과 승률 0%...\n압도적인 패배에 전의를 상실했습니다.",
                 connectingBtn: "연결 중...",
                 errNotFound: "상대방 방이 없습니다. 코드를 확인하거나 상대방이 나갔는지 확인하세요.",
                 errNetwork: "네트워크 오류가 발생했습니다. (방화벽/VPN 확인)",
@@ -270,7 +333,8 @@
                 captureBtnTxt: "Capture Score", rematchBtnTxt: "Rematch", retryBtnTxt: "Retry Same Level", levelUpBtnTxt: "Challenge Stronger Bot", exitBtnTxt: "Exit", botName: "🤖 AlphaDice", userStr: "User", maxTxt: "Max", fixTxt: "Pts",
                 myTxtStr: "Me", oppTxtStr: "Opp", myTurn: "🔥 Your Turn!", botThinking: "🤖 Thinking...", oppTurn: "'s Turn...",
                 draw: "🤝 DRAW 🤝", win: "🎉 VICTORY 🎉", lose: "😭 DEFEAT 😭", botLose: "😭 AlphaDice Wins...", winMsg: "Wins!",
-                surrenderAlert: "Are you sure you want to surrender?", oppSurrenderAlert: "The opponent surrendered!", connClosed: "Connection closed.", botSurrenderMsg: "🤖 0% Win Rate detected... I surrender.",
+                surrenderAlert: "Are you sure you want to surrender?", oppSurrenderAlert: "The opponent surrendered!", connClosed: "Connection closed.", 
+                botSurrenderMsg: "🤖 Win rate 0% detected...\nI have lost the will to fight.",
                 connectingBtn: "Connecting...",
                 errNotFound: "Opponent not found. Check the code or if they left.",
                 errNetwork: "Network error. (Check firewall/VPN)",
@@ -343,6 +407,11 @@
         let isRolling = false; 
         let lastScoredId = null; 
         let amIWantRematch = false, isOppWantRematch = false;
+        let isBotSurrenderIgnored = false; 
+
+        let currentDiceMode = 'dot'; 
+        let diceNumTextures = {};
+        let oppDiceNumTextures = {};
 
         const upperCategories = [
             { id: 'aces', name: 'Aces', icon: 'fa-dice-one', maxVal: 5, type: 'max' },
@@ -377,7 +446,7 @@
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = '#fdfdfd'; ctx.fillRect(0, 0, 256, 256); 
                 ctx.fillStyle = '#1e469c'; 
-                const center = 128, low = 72, high = 184, radius = 22;
+                const center = 128, low = 56, high = 200, radius = 28;
                 const drawDot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
                 if (dots === 1) { drawDot(center, center); }
                 else if (dots === 2) { drawDot(low, low); drawDot(high, high); }
@@ -398,7 +467,7 @@
                 const ctx = canvas.getContext('2d');
                 ctx.fillStyle = '#ffc0cb'; ctx.fillRect(0, 0, 256, 256); 
                 ctx.fillStyle = '#ff0000'; 
-                const center = 128, low = 72, high = 184, radius = 22;
+                const center = 128, low = 56, high = 200, radius = 28;
                 const drawDot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); }
                 if (dots === 1) { drawDot(center, center); }
                 else if (dots === 2) { drawDot(low, low); drawDot(high, high); }
@@ -408,6 +477,31 @@
                 else if (dots === 6) { drawDot(low, low); drawDot(low, center); drawDot(low, high); drawDot(high, low); drawDot(high, center); drawDot(high, high); }
                 const texture = new THREE.CanvasTexture(canvas);
                 oppDiceTextures[dots] = new THREE.MeshLambertMaterial({ map: texture });
+            });
+        }
+
+        function preRenderDiceNumTextures() {
+            const numbers = [1, 2, 3, 4, 5, 6];
+            numbers.forEach(num => {
+                const canvasMe = document.createElement('canvas');
+                canvasMe.width = 256; canvasMe.height = 256;
+                const ctxMe = canvasMe.getContext('2d');
+                ctxMe.fillStyle = '#fdfdfd'; ctxMe.fillRect(0, 0, 256, 256);
+                ctxMe.fillStyle = '#1e469c';
+                ctxMe.font = 'bold 160px Pretendard, Arial, sans-serif';
+                ctxMe.textAlign = 'center'; ctxMe.textBaseline = 'middle';
+                ctxMe.fillText(num, 128, 135);
+                diceNumTextures[num] = new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(canvasMe) });
+
+                const canvasOpp = document.createElement('canvas');
+                canvasOpp.width = 256; canvasOpp.height = 256;
+                const ctxOpp = canvasOpp.getContext('2d');
+                ctxOpp.fillStyle = '#ffc0cb'; ctxOpp.fillRect(0, 0, 256, 256);
+                ctxOpp.fillStyle = '#ff0000';
+                ctxOpp.font = 'bold 160px Pretendard, Arial, sans-serif';
+                ctxOpp.textAlign = 'center'; ctxOpp.textBaseline = 'middle';
+                ctxOpp.fillText(num, 128, 135);
+                oppDiceNumTextures[num] = new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(canvasOpp) });
             });
         }
 
@@ -439,7 +533,6 @@
             6: { x: 0, y: Math.PI, z: 0 }
         };
 
-        // [개선 완료] Three.js 메모리 누수 원천 차단을 위한 개별 Dispose 함수 탑재
         function disposeDiceApp(appObj) {
             if (!appObj) return;
             appObj.isAnimating = false;
@@ -456,25 +549,42 @@
             }
         }
 
-        function initSingle3DDice(boxId, index) {
-            const box = document.getElementById(boxId);
-            if (!box) return;
-            const size = box.clientWidth || 78; 
-            
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
-            camera.position.z = 5.8; 
+function initSingle3DDice(boxId, index) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+    const size = box.clientWidth || 78; 
+    
+    const scene = new THREE.Scene();
+    
+    // -----------------------------------------------------------------
+    // [변경] 원근감이 없는 직교(Orthographic) 카메라로 교체
+    // 상/하/좌/우 가시 범위를 1.8로 설정하여 주사위가 상자 안에 이쁘게 꽉 차도록 조절
+    const viewSize = 1.8; 
+    const camera = new THREE.OrthographicCamera(
+        -viewSize,  // Left
+         viewSize,  // Right
+         viewSize,  // Top
+        -viewSize,  // Bottom
+         0.1,       // Near
+         1000       // Far
+    );
+    // -----------------------------------------------------------------
+    
+    camera.position.z = 5.8; // 카메라는 여전히 주사위 앞(Z축)에서 바라봐야 하므로 유지
 
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(size, size);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 성능 캡핑 추가
-            box.appendChild(renderer.domElement);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(size, size);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    box.appendChild(renderer.domElement);
+    
+    // ... (이하 라이트 및 메쉬 생성 코드는 기존과 동일)
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.25); dirLight.position.set(5, 10, 7); scene.add(dirLight);
 
+            const currentSet = (currentDiceMode === 'number') ? diceNumTextures : diceTextures;
             const materials = [
-                diceTextures[3], diceTextures[4], diceTextures[2], diceTextures[5], diceTextures[1], diceTextures[6]
+                currentSet[3], currentSet[4], currentSet[2], currentSet[5], currentSet[1], currentSet[6]
             ];
 
             const geometry = createPerfectRoundedCube(2.4, 0.22, 16);
@@ -489,7 +599,6 @@
             };
             dice3DApps[index] = appObj;
 
-            // 보간법(LERP) 수치를 높여 감속 싱크를 자연스럽게 맞춤
             function renderTick() {
                 if(appObj.isAnimating) {
                     mesh.rotation.x += (appObj.targetX - mesh.rotation.x) * 0.15;
@@ -510,7 +619,7 @@
             
             app.targetX = faceRotations[finalValue].x + extraRollsX;
             app.targetY = faceRotations[finalValue].y + extraRollsY;
-            app.targetZ = faceRotations[finalValue].z; // Z축 정상화 매핑 고정
+            app.targetZ = faceRotations[finalValue].z;
         }
 
         function captureScoreboard() {
@@ -546,7 +655,6 @@
             });
         }
 
-        // 파이어워크 효과 로직
         const canvas = document.getElementById('fireworksCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -710,20 +818,22 @@
             
             switchView('game-view');
             document.getElementById('gameover-overlay').classList.remove('show');
+            document.getElementById('botSurrenderBanner').classList.remove('show'); 
             document.getElementById('actionButtons').style.display = 'flex'; 
             document.getElementById('p1Name').innerText = t.myTxtStr; 
             document.getElementById('p2Name').innerText = oppNickname || t.oppTxtStr;
             myScores = {}; oppScores = {}; 
             lastScoredId = null; 
+            isBotSurrenderIgnored = false; 
             
             if (Object.keys(diceTextures).length === 0) preRenderDiceTextures();
             if (Object.keys(oppDiceTextures).length === 0) preRenderOppDiceTextures(); 
+            if (Object.keys(diceNumTextures).length === 0) preRenderDiceNumTextures(); 
             
             initDiceUI(); initScoreBoard(); resetTurnData(); updateUI();
         }
 
         function initDiceUI() {
-            // [개선 완료] 루프를 돌며 남아있던 기존 가비지 3D 객체들 렌더 레이어에서 안전 해제(Dispose)
             dice3DApps.forEach(app => disposeDiceApp(app));
             dice3DApps = [];
 
@@ -778,7 +888,7 @@
             for(let i=0; i<5; i++) {
                 if(!isHeld[i]) animate3DDiceRoll(i, targetValues[i]);
             }
-            setTimeout(() => { if(callback) callback(); }, 900); // 렌더링 싱크 감속 시점 최적화(900ms)
+            setTimeout(() => { if(callback) callback(); }, 900);
         }
 
         function rollDice() {
@@ -829,8 +939,17 @@
             else { checkGameEnd(); }
         }
 
+        function checkGameEnd() {
+            if(Object.keys(myScores).length === 12 && Object.keys(oppScores).length === 12) {
+                let my = calculateScores(myScores).total, opp = calculateScores(oppScores).total;
+                showVictoryScreen(my > opp ? myNickname : (opp > my ? oppNickname : "무승부")); return true;
+            }
+            return false;
+        }
+
         function checkBotSurrenderCondition() {
-            if (!isBotMode) return false;
+            if (!isBotMode || isBotSurrenderIgnored) return false;
+
             let playerTotal = calculateScores(myScores).total;
             let botCurrentUpper = 0; let botEmptyUpperMax = 0; let botEmptyLowerMax = 0;
 
@@ -862,11 +981,29 @@
             
             if (checkBotSurrenderCondition()) {
                 setTimeout(() => {
-                    alert(t.botSurrenderMsg);
-                    showVictoryScreen(myNickname);
-                }, 500);
+                    document.getElementById('botSurrenderBanner').classList.add('show');
+                }, 400);
                 return;
             }
+            
+            if (rollsLeft === 3) { 
+                botRollDice(() => { setTimeout(runBotLogic, 1200); }); 
+            } else if (rollsLeft > 0) { 
+                botDecideHolds(); 
+                setTimeout(() => { botRollDice(() => { setTimeout(runBotLogic, 1200); }); }, 900);
+            } else { 
+                setTimeout(botSelectScore, 600);
+            }
+        }
+
+        function acceptBotSurrender() {
+            document.getElementById('botSurrenderBanner').classList.remove('show');
+            showVictoryScreen(myNickname);
+        }
+
+        function refuseBotSurrender() {
+            document.getElementById('botSurrenderBanner').classList.remove('show');
+            isBotSurrenderIgnored = true; 
             
             if (rollsLeft === 3) { 
                 botRollDice(() => { setTimeout(runBotLogic, 1200); }); 
@@ -930,8 +1067,6 @@
                     for (let cat of categories) {
                         if (oppScores[cat.id] === undefined && p[cat.id] > bestScore) { bestScore = p[cat.id]; bestCat = cat.id; }
                     }
-                    // [벨런싱 패치] 고득점 족보를 무작위로 0점 처리하던 디벨롭 이슈 수정.
-                    // 리스크가 낮은 Aces 계열 상단 혹은 기대값이 좁은 4ofakind 순으로 최적화 배치.
                     if (bestScore === 0 || bestCat === null) {
                         const sacrificeOrder = ['aces','twos','threes','fours','4ofakind','choice','fullhouse','sstraight','lstraight','fives','sixes','yacht'];
                         for (let catId of sacrificeOrder) { if (oppScores[catId] === undefined) { bestCat = catId; break; } }
@@ -966,6 +1101,23 @@
             return p;
         }
 
+        // [변경] 버튼 위치 이동에 따른 실시간 아이콘 스위칭 핸들러 갱신
+function toggleDiceMode() {
+    currentDiceMode = (currentDiceMode === 'dot') ? 'number' : 'dot';
+    
+    const btnText = document.getElementById('diceModeBtnText');
+    const btnIcon = document.getElementById('diceModeIcon');
+    
+    if (currentDiceMode === 'dot') {
+        if (btnText) btnText.innerText = "숫자 모드로 전환";
+        if (btnIcon) btnIcon.className = "fa-solid fa-square-1"; // 사각형 안의 숫자 1
+    } else {
+        if (btnText) btnText.innerText = "점 모드로 전환";
+        if (btnIcon) btnIcon.className = "fa-solid fa-dice-one";  // 점 1개 주사위
+    }
+    updateUI(); 
+}
+
         function calculateScores(scoresObj) {
             let upper = ['aces','twos','threes','fours','fives','sixes'].reduce((a,c) => a+(scoresObj[c]||0), 0);
             let bonus = upper >= 63 ? 35 : 0;
@@ -983,9 +1135,16 @@
                     if (isHeld[i]) box.className = 'dice-3d-box held';
                     else box.className = 'dice-3d-box';
 
-                    const currentMaterials = isOppTurn ? 
-                        [oppDiceTextures[3], oppDiceTextures[4], oppDiceTextures[2], oppDiceTextures[5], oppDiceTextures[1], oppDiceTextures[6]] :
-                        [diceTextures[3], diceTextures[4], diceTextures[2], diceTextures[5], diceTextures[1], diceTextures[6]];
+                    let currentMaterials;
+                    if (isOppTurn) {
+                        currentMaterials = (currentDiceMode === 'number') ?
+                            [oppDiceNumTextures[3], oppDiceNumTextures[4], oppDiceNumTextures[2], oppDiceNumTextures[5], oppDiceNumTextures[1], oppDiceNumTextures[6]] :
+                            [oppDiceTextures[3], oppDiceTextures[4], oppDiceTextures[2], oppDiceTextures[5], oppDiceTextures[1], oppDiceTextures[6]];
+                    } else {
+                        currentMaterials = (currentDiceMode === 'number') ?
+                            [diceNumTextures[3], diceNumTextures[4], diceNumTextures[2], diceNumTextures[5], diceNumTextures[1], diceNumTextures[6]] :
+                            [diceTextures[3], diceTextures[4], diceTextures[2], diceTextures[5], diceTextures[1], diceTextures[6]];
+                    }
                     
                     app.mesh.material = currentMaterials; 
                 }
@@ -1040,17 +1199,10 @@
             else oppBonusEl.classList.remove('bonus-achieved');
         }
 
-        function checkGameEnd() {
-            if(Object.keys(myScores).length === 12 && Object.keys(oppScores).length === 12) {
-                let my = calculateScores(myScores).total, opp = calculateScores(oppScores).total;
-                showVictoryScreen(my > opp ? myNickname : (opp > my ? oppNickname : "무승부")); return true;
-            }
-            return false;
-        }
-
         function showVictoryScreen(winner) {
             document.getElementById('gameover-overlay').classList.add('show');
             document.getElementById('actionButtons').style.display = 'none'; 
+            document.getElementById('botSurrenderBanner').classList.remove('show'); 
 
             lastWinner = winner; 
             let isWin = winner === myNickname;
@@ -1125,11 +1277,10 @@
             isHeld = [false,false,false,false,false]; 
             rollsLeft = 3; 
             
-            // [개선 완료] targetZ 누락 현상 수정 및 축 정렬 수치 보정 적용
             for(let i=0; i<5; i++){
                 if(dice3DApps[i]){
-                    dice3DApps[i].targetX = 0.6;
-                    dice3DApps[i].targetY = 0.6;
+                    dice3DApps[i].targetX = 0.45;
+                    dice3DApps[i].targetY = 0.90;
                     dice3DApps[i].targetZ = 0;
                 }
             }
