@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+</head>
+<body>
+  <video id="input_video" style="display:none;"></video>
+  <canvas id="output_canvas" width="640" height="480"></canvas>
+
+  <script type="module">
+    const videoElement = document.getElementById('input_video');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
+    faceMesh.setOptions({maxNumFaces: 1, refineLandmarks: true});
+    faceMesh.onResults((results) => {
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      if (results.multiFaceLandmarks) {
+        for (const landmarks of results.multiFaceLandmarks) {
+          // 여기서 landmarks 데이터를 활용해 캐릭터 표정을 제어하게 됩니다.
+          landmarks.forEach(point => {
+            canvasCtx.fillStyle = 'red';
+            canvasCtx.fillRect(point.x * 640, point.y * 480, 2, 2);
+          });
+        }
+      }
+    });
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => { await faceMesh.send({image: videoElement}); },
+      width: 640, height: 480
+    });
+    camera.start();
+  </script>
+</body>
+</html>
