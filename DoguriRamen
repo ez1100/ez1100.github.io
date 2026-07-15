@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>슈의 라면가게 - 깔끔한 주문서 패치</title>
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            background-color: #ffe6f0;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+            color: #2d3436;
+        }
+        
+        .header { text-align: center; margin-bottom: 20px; }
+        h1 { color: #d63031; margin: 0 0 5px 0; }
+        .score-board { font-size: 26px; font-weight: bold; }
+
+        #toast-container {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: fadeInOut 1.8s forwards;
+            text-align: center;
+        }
+        .toast.success { background-color: #00b894; }
+        .toast.error { background-color: #d63031; }
+        .toast.warning { background-color: #e17055; }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            15% { opacity: 1; transform: translateY(0) scale(1); }
+            85% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
+        .main-layout {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-area {
+            flex: 1;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        /* 3인 손님 테이블 UI */
+        .customers-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .customer-card {
+            flex: 1;
+            background-color: #fff9db;
+            border: 3px dashed #f1c40f;
+            border-radius: 15px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            min-height: 160px;
+        }
+        .customer-card.drag-over {
+            background-color: #fef9e7;
+            border-color: #00b894;
+            transform: scale(1.03);
+            box-shadow: 0 0 15px rgba(0, 184, 148, 0.4);
+        }
+        .customer-avatar {
+            font-size: 36px;
+            background: white;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid #f1c40f;
+        }
+        .customer-bubble {
+            font-size: 13px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .how-to-play {
+            width: 280px;
+            background-color: #fff0f5;
+            border: 3px solid #ffb8c6;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: left;
+        }
+        .how-to-play h2 { font-size: 16px; color: #d63031; margin-top: 0; border-bottom: 2px dashed #ffb8c6; padding-bottom: 8px; }
+        .how-to-play ul { padding-left: 15px; margin-bottom: 12px; }
+        .how-to-play li { margin-bottom: 6px; }
+
+        /* 재료 드래그 툴바 */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #fdfbfb;
+            padding: 12px;
+            border-radius: 15px;
+            border: 2px dashed #fab1a0;
+        }
+        .ingredient-item {
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            background-color: #ffffff;
+            border: 3px solid #ff7675;
+            border-radius: 12px;
+            cursor: grab;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .ingredient-item:hover { transform: translateY(-2px); }
+
+        /* 냄비 영역 */
+        .pot-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .pot {
+            width: 170px;
+            height: 220px;
+            background-color: #f5f6fa;
+            border: 6px solid #636e72;
+            border-radius: 15px 15px 35px 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+            position: relative;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+            transition: transform 0.2s, border-color 0.2s;
+            padding: 10px 0;
+            overflow: hidden;
+        }
+        .pot.drag-over {
+            border-color: #00b894;
+            transform: scale(1.05);
+        }
+        .pot-status { 
+            font-size: 12px; 
+            color: #2d3436; 
+            font-weight: bold; 
+            pointer-events: none; 
+            z-index: 10;
+            background: rgba(255,255,255,0.85);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        /* 레이어 그래픽 이미지 스택 (7겹) */
+        .pot-layers {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            pointer-events: none; 
+            transition: filter 0.3s;
+        }
+        .pot-layers.burnt-effect {
+            filter: brightness(0.25) sepia(0.8) hue-rotate(-30deg) contrast(1.5);
+        }
+        .layer-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.12s ease-in-out;
+        }
+        .layer-hidden { opacity: 0; }
+
+        /* 타이머 바 */
+        .timer-bar {
+            width: 80%;
+            height: 10px;
+            background-color: #dfe6e9;
+            border-radius: 5px;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .timer-fill {
+            width: 0%;
+            height: 100%;
+            background-color: #fdcb6e;
+            transition: width 0.1s linear, background-color 0.3s;
+        }
+
+        /* 하단 쓰레기통 */
+        .trash-zone {
+            width: 100%;
+            height: 60px;
+            background-color: #fadedb;
+            border: 3px dashed #d63031;
+            color: #c0392b;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .trash-zone.drag-over { background-color: #f5b7b1; transform: scale(1.02); }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div class="header">
+        <h1>🍜 슈의 라면가게</h1>
+        <div class="score-board">점수: <span id="score">0</span>점</div>
+    </div>
+
+    <div class="main-layout">
+        <div class="game-area">
+            
+            <div class="customers-container">
+                <div class="customer-card" id="customer-0" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnAction(event, 'serve', 0)">
+                    <div class="customer-avatar" id="avatar-0">🧑</div>
+                    <div class="customer-bubble" id="bubble-0">주문 준비중...</div>
+                </div>
+                <div class="customer-card" id="customer-1" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnAction(event, 'serve', 1)">
+                    <div class="customer-avatar" id="avatar-1">👧</div>
+                    <div class="customer-bubble" id="bubble-1">주문 준비중...</div>
+                </div>
+                <div class="customer-card" id="customer-2" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnAction(event, 'serve', 2)">
+                    <div class="customer-avatar" id="avatar-2">👨</div>
+                    <div class="customer-bubble" id="bubble-2">주문 준비중...</div>
+                </div>
+            </div>
+            
+            <div class="toolbar">
+                <div class="ingredient-item" draggable="true" ondragstart="dragStart(event, 'ingredient', 'water')">💧 물 주전자</div>
+                <div class="ingredient-item" draggable="true" ondragstart="dragStart(event, 'ingredient', 'noodle')">🍜 라면 사리</div>
+                <div class="ingredient-item" draggable="true" ondragstart="dragStart(event, 'ingredient', 'soup')">🌶️ 분말 스프</div>
+                <div class="ingredient-item" draggable="true" ondragstart="dragStart(event, 'ingredient', 'egg')">🥚 계란</div>
+                <div class="ingredient-item" draggable="true" ondragstart="dragStart(event, 'ingredient', 'greenonion')">🟢 파</div>
+                <div class="ingredient-item" draggable="true" ondragstart="dragStart(event, 'ingredient', 'ricecake')">⬜ 떡</div>
+            </div>
+
+            <div class="pot-container">
+                <div class="pot" draggable="true" ondragstart="dragStart(event, 'pot', 0)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnPot(event, 0)">
+                    <div class="pot-status" id="status-0">빈 냄비</div>
+                    <div class="pot-layers" id="layers-0">
+                        <img src="pot_0_base.png" class="layer-img" alt="냄비바탕">
+                        <img src="pot_1_water.png" class="layer-img layer-hidden" id="layer-0-water" alt="물">
+                        <img src="pot_2_soup.png" class="layer-img layer-hidden" id="layer-0-soup" alt="스프">
+                        <img src="pot_3_noodle.png" class="layer-img layer-hidden" id="layer-0-noodle" alt="면">
+                        <img src="pot_4_egg.png" class="layer-img layer-hidden" id="layer-0-egg" alt="계란">
+                        <img src="pot_5_ricecake.png" class="layer-img layer-hidden" id="layer-0-ricecake" alt="떡">
+                        <img src="pot_6_greenonion.png" class="layer-img layer-hidden" id="layer-0-greenonion" alt="파">
+                    </div>
+                    <div class="timer-bar"><div class="timer-fill" id="timer-0"></div></div>
+                </div>
+
+                <div class="pot" draggable="true" ondragstart="dragStart(event, 'pot', 1)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnPot(event, 1)">
+                    <div class="pot-status" id="status-1">빈 냄비</div>
+                    <div class="pot-layers" id="layers-1">
+                        <img src="pot_0_base.png" class="layer-img" alt="냄비바탕">
+                        <img src="pot_1_water.png" class="layer-img layer-hidden" id="layer-1-water" alt="물">
+                        <img src="pot_2_soup.png" class="layer-img layer-hidden" id="layer-1-soup" alt="스프">
+                        <img src="pot_3_noodle.png" class="layer-img layer-hidden" id="layer-1-noodle" alt="면">
+                        <img src="pot_4_egg.png" class="layer-img layer-hidden" id="layer-1-egg" alt="계란">
+                        <img src="pot_5_ricecake.png" class="layer-img layer-hidden" id="layer-1-ricecake" alt="떡">
+                        <img src="pot_6_greenonion.png" class="layer-img layer-hidden" id="layer-1-greenonion" alt="파">
+                    </div>
+                    <div class="timer-bar"><div class="timer-fill" id="timer-1"></div></div>
+                </div>
+
+                <div class="pot" draggable="true" ondragstart="dragStart(event, 'pot', 2)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnPot(event, 2)">
+                    <div class="pot-status" id="status-2">빈 냄비</div>
+                    <div class="pot-layers" id="layers-2">
+                        <img src="pot_0_base.png" class="layer-img" alt="냄비바탕">
+                        <img src="pot_1_water.png" class="layer-img layer-hidden" id="layer-2-water" alt="물">
+                        <img src="pot_2_soup.png" class="layer-img layer-hidden" id="layer-2-soup" alt="스프">
+                        <img src="pot_3_noodle.png" class="layer-img layer-hidden" id="layer-2-noodle" alt="면">
+                        <img src="pot_4_egg.png" class="layer-img layer-hidden" id="layer-2-egg" alt="계란">
+                        <img src="pot_5_ricecake.png" class="layer-img layer-hidden" id="layer-2-ricecake" alt="떡">
+                        <img src="pot_6_greenonion.png" class="layer-img layer-hidden" id="layer-2-greenonion" alt="파">
+                    </div>
+                    <div class="timer-bar"><div class="timer-fill" id="timer-2"></div></div>
+                </div>
+            </div>
+
+            <div class="trash-zone" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropOnAction(event, 'trash')">
+                🗑️ 탄 냄비 버리는 쓰레기통
+            </div>
+
+        </div>
+
+        <div class="how-to-play">
+            <h2>📖 손님 주문 해석법</h2>
+            <p>익힘 상태와 특별한 요구 조건만 표기됩니다!</p>
+            <ul>
+                <li><strong>면/스프</strong>: 당연히 들어가는 기본재료라 생략합니다.</li>
+                <li><strong>계란</strong>: 기본 재료지만 <strong style="color:#d63031;">"계란 빼고"</strong>가 떠있다면 실수로 넣지 않게 조심하세요!</li>
+                <li><strong>파/떡</strong>: 기본은 미포함이며, 주문서에 <strong style="color:#0984e3;">"파 추가"</strong> 또는 <strong style="color:#e67e22;">"떡 추가"</strong>가 있을 때만 냄비에 넣어 서빙하세요.</li>
+            </ul>
+            <h2>⚡ 면 익힘 가이드</h2>
+            <ul>
+                <li>• <strong>덜익음</strong>: 2.0초 ~ 4.5초</li>
+                <li>• <strong>적당함</strong>: 4.5초 ~ 7.0초</li>
+                <li>• <strong>푹익음</strong>: 7.0초 ~ 9.0초</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+
+        const donenessNames = {
+            'undercooked': '덜익음',
+            'cooked': '적당함',
+            'overcooked': '푹익음'
+        };
+
+        const pots = [
+            { state: 'empty', water: false, noodle: false, soup: false, egg: false, greenonion: false, ricecake: false, heatingTime: 0, cookingTime: 0, interval: null },
+            { state: 'empty', water: false, noodle: false, soup: false, egg: false, greenonion: false, ricecake: false, heatingTime: 0, cookingTime: 0, interval: null },
+            { state: 'empty', water: false, noodle: false, soup: false, egg: false, greenonion: false, ricecake: false, heatingTime: 0, cookingTime: 0, interval: null }
+        ];
+
+        const customers = [
+            { active: false, doneness: '', egg: false, greenonion: false, ricecake: false, avatar: '' },
+            { active: false, doneness: '', egg: false, greenonion: false, ricecake: false, avatar: '' },
+            { active: false, doneness: '', egg: false, greenonion: false, ricecake: false, avatar: '' }
+        ];
+
+        window.onload = function() {
+            generateCustomer(0);
+            generateCustomer(1);
+            generateCustomer(2);
+        };
+
+        function generateCustomer(index) {
+            const donenessOptions = ['undercooked', 'cooked', 'overcooked'];
+            const randomDoneness = donenessOptions[Math.floor(Math.random() * donenessOptions.length)];
+            const randomEgg = Math.random() > 0.2; // 80% 확률로 계란 포함(기본값), 20%만 빼달라고 함
+            const randomGreenOnion = Math.random() > 0.6; // 40% 확률로 대파 추가 요구
+            const randomRiceCake = Math.random() > 0.6; // 40% 확률로 떡 추가 요구
+
+            const avatars = ['🧑', '👧', '👨', '👵', '👱', '👲', '👮', '👩‍🦰', '🤵', '🦁'];
+            const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
+
+            customers[index] = {
+                active: true,
+                doneness: randomDoneness,
+                egg: randomEgg,
+                greenonion: randomGreenOnion,
+                ricecake: randomRiceCake,
+                avatar: randomAvatar
+            };
+
+            updateCustomerUI(index);
+        }
+
+        // 💡 핵심: 사용자의 명확한 요구에 따른 텍스트 렌더링 로직 개편
+        function updateCustomerUI(index) {
+            const c = customers[index];
+            const avatarEl = document.getElementById(`avatar-${index}`);
+            const bubbleEl = document.getElementById(`bubble-${index}`);
+
+            avatarEl.innerText = c.avatar;
+
+            const donenessStr = donenessNames[c.doneness];
+            
+            // 요구 조건만 동적으로 걸러내서 가독성 높은 텍스트 완성
+            let demands = [];
+            
+            // 1. 계란은 기본이지만 뺄 때만 명시
+            if (!c.egg) {
+                demands.push("<span style='color:#d63031; font-weight:bold;'>❌ 계란 빼고</span>");
+            }
+            // 2. 파는 추가될 때만 명시
+            if (c.greenonion) {
+                demands.push("<span style='color:#0984e3; font-weight:bold;'>🟢 파 추가</span>");
+            }
+            // 3. 떡은 추가될 때만 명시
+            if (c.ricecake) {
+                demands.push("<span style='color:#e67e22; font-weight:bold;'>⬜ 떡 추가</span>");
+            }
+
+            const requestStr = demands.length > 0 ? demands.join('<br>') : "✨ 기본 옵션";
+
+            bubbleEl.innerHTML = `
+                [${donenessStr}]<br>
+                ${requestStr}
+            `;
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 1800);
+        }
+
+        function dragStart(event, type, value) {
+            event.dataTransfer.setData("text/plain", JSON.stringify({ type: type, value: value }));
+        }
+
+        function allowDrop(event) {
+            event.preventDefault(); 
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function dragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function dropOnPot(event, potIndex) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            const data = JSON.parse(event.dataTransfer.getData("text/plain"));
+            if (data.type !== 'ingredient') return;
+
+            const tool = data.value;
+            const pot = pots[potIndex];
+
+            if (tool === 'water' && pot.state === 'empty') {
+                pot.water = true;
+                pot.state = 'heating';
+                startCooking(potIndex);
+            } else if (pot.state !== 'empty' && pot.state !== 'burnt') {
+                if (tool === 'noodle') pot.noodle = true;
+                if (tool === 'soup') pot.soup = true;
+                if (tool === 'egg') pot.egg = true;
+                if (tool === 'greenonion') pot.greenonion = true;
+                if (tool === 'ricecake') pot.ricecake = true;
+            }
+
+            updatePotUI(potIndex);
+        }
+
+        function dropOnAction(event, actionType, customerIndex = null) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            const data = JSON.parse(event.dataTransfer.getData("text/plain"));
+            if (data.type !== 'pot') return;
+
+            const potIndex = data.value;
+            const pot = pots[potIndex];
+
+            if (actionType === 'trash') {
+                resetPot(potIndex);
+                showToast("🗑️ 탄 냄비를 깔끔하게 비웠습니다.", 'warning');
+                return;
+            }
+
+            if (actionType === 'serve' && customerIndex !== null) {
+                const targetCustomer = customers[customerIndex];
+
+                if (pot.state === 'empty') {
+                    showToast("❓ 빈 냄비를 서빙할 수는 없어!", 'warning');
+                    return;
+                }
+                if (pot.state === 'heating' || (pot.state === 'boiling' && pot.cookingTime < 2.0)) {
+                    showToast("⏳ 아직 면이 하나도 안 익었어!", 'warning');
+                    return;
+                }
+                if (pot.state === 'burnt') {
+                    showToast("💀 탄 라면은 손님에게 줄 수 없어!", 'error');
+                    return;
+                }
+
+                // 주문 일치 여부 다중 검증
+                const donenessMatch = (pot.state === targetCustomer.doneness);
+                const eggMatch = (pot.egg === targetCustomer.egg);
+                const onionMatch = (pot.greenonion === targetCustomer.greenonion);
+                const cakeMatch = (pot.ricecake === targetCustomer.ricecake);
+
+                if (donenessMatch && eggMatch && onionMatch && cakeMatch) {
+                    score += 1500;
+                    document.getElementById('score').innerText = score;
+                    showToast(`✨ ${customerIndex + 1}번 테이블 손님이 매우 만족해합니다! (+1500점)`, 'success');
+                    resetPot(potIndex);
+                    generateCustomer(customerIndex); 
+                } else {
+                    let failReason = [];
+                    if (!donenessMatch) failReason.push(`익힘 실수(요청:${donenessNames[targetCustomer.doneness]}/결과:${donenessNames[pot.state]})`);
+                    if (!eggMatch) failReason.push(targetCustomer.egg ? "계란 빼먹음" : "계란 잘못 넣음");
+                    if (!onionMatch) failReason.push(targetCustomer.greenonion ? "파 빼먹음" : "파 잘못 넣음");
+                    if (!cakeMatch) failReason.push(targetCustomer.ricecake ? "떡 빼먹음" : "떡 잘못 넣음");
+
+                    score = Math.max(0, score - 500);
+                    document.getElementById('score').innerText = score;
+                    showToast(`😡 ${customerIndex + 1}번 손님: "주문대로 안 나왔잖아요!" (-500점)<br><span style='font-size:11px; font-weight:normal;'>사유: ${failReason.join(', ')}</span>`, 'error');
+                    resetPot(potIndex);
+                    generateCustomer(customerIndex); 
+                }
+            }
+        }
+
+        function startCooking(index) {
+            const pot = pots[index];
+            const heatingDuration = 2.2;  
+            
+            const limitUndercooked = 2.0; 
+            const limitCooked = 4.5;      
+            const limitOvercooked = 7.0;  
+            const limitBurnt = 9.0;       
+
+            pot.interval = setInterval(() => {
+                if (pot.heatingTime < heatingDuration) {
+                    pot.heatingTime += 0.1;
+                    pot.state = 'heating';
+                } 
+                else {
+                    if (pot.state === 'heating') {
+                        pot.state = 'boiling';
+                    }
+
+                    if (pot.noodle && pot.soup) {
+                        pot.cookingTime += 0.1;
+
+                        if (pot.cookingTime < limitUndercooked) {
+                            pot.state = 'boiling';
+                        } else if (pot.cookingTime >= limitUndercooked && pot.cookingTime < limitCooked) {
+                            pot.state = 'undercooked'; 
+                        } else if (pot.cookingTime >= limitCooked && pot.cookingTime < limitOvercooked) {
+                            pot.state = 'cooked';       
+                        } else if (pot.cookingTime >= limitOvercooked && pot.cookingTime < limitBurnt) {
+                            pot.state = 'overcooked';   
+                        } else {
+                            pot.state = 'burnt';        
+                        }
+                    }
+                }
+
+                updatePotUI(index);
+
+                if (pot.cookingTime >= limitBurnt + 1.5) {
+                    clearInterval(pot.interval);
+                }
+            }, 100);
+        }
+
+        function resetPot(index) {
+            const pot = pots[index];
+            clearInterval(pot.interval);
+            pots[index] = { state: 'empty', water: false, noodle: false, soup: false, egg: false, greenonion: false, ricecake: false, heatingTime: 0, cookingTime: 0, interval: null };
+            updatePotUI(index);
+        }
+
+        function updatePotUI(index) {
+            const pot = pots[index];
+            const statusEl = document.getElementById(`status-${index}`);
+            const layersContainer = document.getElementById(`layers-${index}`);
+            const timerEl = document.getElementById(`timer-${index}`);
+
+            if (pot.state === 'empty') {
+                statusEl.innerText = "빈 냄비";
+                statusEl.style.color = "#2d3436";
+            } else if (pot.state === 'heating') {
+                statusEl.innerText = "⏳ 물 끓는 중...";
+                statusEl.style.color = "#0984e3";
+            } else if (pot.state === 'undercooked') {
+                statusEl.innerText = "꼬들꼬들 (덜익음)";
+                statusEl.style.color = "#00b894";
+            } else if (pot.state === 'cooked') {
+                statusEl.innerText = "보글보글 (적당함)";
+                statusEl.style.color = "#2ecc71";
+            } else if (pot.state === 'overcooked') {
+                statusEl.innerText = "부들부들 (푹익음)";
+                statusEl.style.color = "#e67e22";
+            } else if (pot.state === 'burnt') {
+                statusEl.innerText = "🔥 타버림!";
+                statusEl.style.color = "#d63031";
+            } else {
+                statusEl.innerText = "♨️ 끓는 물 (대기)";
+                statusEl.style.color = "#e17055";
+            }
+
+            document.getElementById(`layer-${index}-water`).classList.toggle('layer-hidden', !pot.water);
+            document.getElementById(`layer-${index}-soup`).classList.toggle('layer-hidden', !pot.soup);
+            document.getElementById(`layer-${index}-noodle`).classList.toggle('layer-hidden', !pot.noodle);
+            document.getElementById(`layer-${index}-egg`).classList.toggle('layer-hidden', !pot.egg);
+            document.getElementById(`layer-${index}-ricecake`).classList.toggle('layer-hidden', !pot.ricecake);
+            document.getElementById(`layer-${index}-greenonion`).classList.toggle('layer-hidden', !pot.greenonion);
+
+            if (pot.state === 'burnt') {
+                layersContainer.classList.add('burnt-effect');
+            } else {
+                layersContainer.classList.remove('burnt-effect');
+            }
+
+            if (pot.state === 'heating') {
+                const progress = (pot.heatingTime / 2.2) * 100;
+                timerEl.style.width = `${progress}%`;
+                timerEl.style.backgroundColor = "#0984e3";
+            } else if (pot.state === 'boiling' && (!pot.noodle || !pot.soup)) {
+                timerEl.style.width = "0%";
+            } else {
+                const progress = Math.min((pot.cookingTime / 9.0) * 100, 100);
+                timerEl.style.width = `${progress}%`;
+                
+                if (pot.state === 'burnt') timerEl.style.backgroundColor = "#d63031";
+                else if (pot.state === 'overcooked') timerEl.style.backgroundColor = "#e67e22";
+                else if (pot.state === 'cooked') timerEl.style.backgroundColor = "#2ecc71";
+                else if (pot.state === 'undercooked') timerEl.style.backgroundColor = "#00b894";
+                else timerEl.style.backgroundColor = "#fdcb6e";
+            }
+        }
+    </script>
+</body>
+</html>
